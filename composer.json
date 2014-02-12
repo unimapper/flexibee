@@ -1,0 +1,19 @@
+{
+    "name": "bauer01/unimapper-flexibee",
+    "type": "library",
+    "description": "Flexibee implementation for UniMapper",
+    "keywords": ["php", "mapping", "data", "orm", "flexibee"],
+    "license": ["MIT"],
+    "authors": [
+        {
+            "name": "Bronislav Sedlak",
+            "homepage": "http://github.com/bauer01"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+            "classmap": ["src/"]
+    }
+}
