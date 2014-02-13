@@ -458,4 +458,17 @@ class FlexibeeMapper extends \UniMapper\Mapper
         return $this->getStatus($data);
     }
 
+    protected function getSelection(\UniMapper\Query $query)
+    {
+        $selection = parent::getSelection($query);
+
+        // Remove properties with @ char (polozky@removeAll)
+        foreach ($selection as $index => $item) {
+            if (strpos($item, "@") === false) {
+                unset($selection[$index]);
+            }
+        }
+        return $selection;
+    }
+
 }
