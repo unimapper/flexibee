@@ -464,7 +464,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Remove properties with @ char (polozky@removeAll)
         foreach ($selection as $index => $item) {
-            if (strpos($item, "@") === false) {
+            if (strpos($item, "@")) {
                 unset($selection[$index]);
             }
         }
