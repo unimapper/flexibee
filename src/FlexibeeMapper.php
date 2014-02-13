@@ -205,7 +205,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         );
     }
 
-    public function count(\UniMapper\Query\ICountable $query)
+    public function count(\UniMapper\Query\Count $query)
     {
         // Get URL
         $url = $this->connection->getUrl() . "/" . $this->getResource($query);
