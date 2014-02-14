@@ -19,13 +19,13 @@ class FlexibeeMapper extends \UniMapper\Mapper
     /**
      * Constructor
      *
-     * @param \UniMapper\Connection\FlexibeeConnection $connection Flexibee connection
+     * @param array $config Flexibee connection configuration
      *
      * @return void
      */
-    public function __construct(FlexibeeConnection $connection)
+    public function __construct(array $config)
     {
-        $this->connection = $connection;
+        $this->connection = new FlexibeeConnection($config);
     }
 
     /**
@@ -320,17 +320,12 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     protected function getConditions(\UniMapper\Query $query)
     {
-        $properties = $this->getMapperProperties($query);
+        $properties = $query->entityReflection->getProperties((string) $this);
 
         $result = null;
         foreach ($query->conditions as $condition) {
 
             $propertyName = $condition->getExpression();
-
-            // Skip properties not related to this mapper
-            if (!isset($properties[$propertyName])) {
-                continue;
-            }
 
             // Apply defined mapping from entity
             $mappedPropertyName = $properties[$propertyName]->getMapping()->getName((string) $this);
