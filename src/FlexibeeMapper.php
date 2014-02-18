@@ -168,7 +168,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Add order
         if (count($query->orders) > 0) {
-            $parameters = $this->convertOrder($query->orders);
+            $parameters = $this->convertOrder($query->orders, $query);
         }
 
         if ($query->offset) {
@@ -404,11 +404,11 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
             // Map property name to defined mapping definition
             $properties = $query->entityReflection->getProperties();
-            $mapping = $properties[$order->getItem()]->getMapping()->getName((string) $this);
+            $mapping = $properties[$order->propertyName]->getMapping()->getName((string) $this);
             if ($mapping) {
                 $result[] = "order=" . rawurlencode($mapping . "@" . $direction);
             } else {
-                $result[] = "order=" . rawurlencode($order->getItem() . "@" . $direction);
+                $result[] = "order=" . rawurlencode($order->propertyName . "@" . $direction);
             }
 
         }
