@@ -380,17 +380,17 @@ class FlexibeeMapper extends \UniMapper\Mapper
     /**
      * Convert order to URL format
      *
-     * @param array          $collection Collection of \UniMapper\Query\Object\Order
-     * @param \UniMapper\Query $query      Query object
+     * @param array            $orderBy Collection of \UniMapper\Query\Object\Order
+     * @param \UniMapper\Query $query   Query object
      *
      * @return array
      *
      * @throws \UniMapper\Exceptions\MapperException
      */
-    protected function convertOrder(array $collection, \UniMapper\Query $query)
+    protected function convertOrder(array $orderBy, \UniMapper\Query $query)
     {
         $result = array();
-        foreach ($collection as $order) {
+        foreach ($orderBy as $order) {
 
             if (!$order instanceof Order) {
                 throw new MapperException("Order collection must contain only \UniMapper\Query\Object\Order objects!");
@@ -403,14 +403,22 @@ class FlexibeeMapper extends \UniMapper\Mapper
             }
 
             // Map property name to defined mapping definition
-            $properties = $query->entityReflection->getProperties();
-            $mapping = $properties[$order->propertyName]->getMapping()->getName((string) $this);
-            if ($mapping) {
-                $result[] = "order=" . rawurlencode($mapping . "@" . $direction);
-            } else {
-                $result[] = "order=" . rawurlencode($order->propertyName . "@" . $direction);
+            $properties = $query->entityReflection->getProperties((string) $this);
+
+            // Skip properties not related to this mapper
+            if (!isset($properties[$order->propertyName])) {
+                continue;
             }
 
+            // Map property
+            $mapping = $properties[$order->propertyName]->getMapping();
+            if ($mapping) {
+                $propertyName = $mapping->getName((string) $this);
+            } else {
+                $propertyName = $order->propertyName;
+            }
+
+            $result[] = "order=" . rawurlencode($propertyName  . "@" . $direction);
         }
         return $result;
     }
