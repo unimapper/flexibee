@@ -3,6 +3,7 @@
 namespace UniMapper\Mapper;
 
 use UniMapper\Query\Object\Order,
+    UniMapper\Reflection\EntityReflection,
     UniMapper\Connection\FlexibeeConnection,
     UniMapper\Exceptions\MapperException;
 
@@ -37,7 +38,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function delete(\UniMapper\Query\Delete $query)
     {
-        $resource = $this->getResource($query);
+        $resource = $this->getResource($query->entityReflection);
 
         if (count($query->conditions) > 1) {
             throw new MapperException("Only one condition is allowed!");
@@ -92,32 +93,25 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @param \UniMapper\Query\FindOne $query Query
      *
-     * @return mixed
+     * @return \UniMapper\Entity|false
      *
      * @throws \UniMapper\Exceptions\MapperException
-     *
-     * @todo primary property not implemented
      */
     public function findOne(\UniMapper\Query\FindOne $query)
     {
-        $selection = $this->mapSelection($query);
-        if (count($selection) === 0) {
-            return false;
-        }
-
-        $resource = $this->getResource($query);
+        $resource = $this->getResource($query->entityReflection);
 
         // Create URL
         $url = $this->connection->getUrl()
             . "/" . $resource
-            . "/" . rawurlencode($query->entityReflection->getPrimaryProperty())
+            . "/" . rawurlencode($query->primaryValue)
             . ".json";
 
         // Add custom fields from entity property definitions
         $parameters = array();
 
         // Add custom fields from entity properties definitions
-        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $selection));
+        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->getSelection($query->entityReflection)));
 
         // Try to get IDs as 'code:...'
         $parameters[] = "code-as-id=true";
@@ -135,8 +129,12 @@ class FlexibeeMapper extends \UniMapper\Mapper
             return false;
         }
 
-        // Set ID
-        return $this->setCodeId($data, $resource)->winstrom->{$resource}[0];
+        $entityClass = $query->entityReflection->getName();
+
+        return $this->dataToEntity(
+            $this->setCodeId($data, $resource)->winstrom->{$resource}[0],
+            new $entityClass
+        );
     }
 
     /**
@@ -150,7 +148,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function findAll(\UniMapper\Query\FindAll $query)
     {
-        $resource = $this->getResource($query);
+        $resource = $this->getResource($query->entityReflection);
 
         // Get URL
         $url = $this->connection->getUrl() . "/" . $resource;
@@ -179,7 +177,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         }
 
         // Add custom fields from entity properties definitions
-        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->getSelection($query)));
+        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->getSelection($query->entityReflection)));
 
         // Try to get IDs as 'code:...'
         $parameters[] = "code-as-id=true";
@@ -208,7 +206,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
     public function count(\UniMapper\Query\Count $query)
     {
         // Get URL
-        $url = $this->connection->getUrl() . "/" . $this->getResource($query);
+        $url = $this->connection->getUrl() . "/" . $this->getResource($query->entityReflection);
 
         // Apply conditions
         if (count($query->conditions > 0)) {
@@ -228,7 +226,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function insert(\UniMapper\Query\Insert $query)
     {
-        $resource = $this->getResource($query);
+        $resource = $this->getResource($query->entityReflection);
 
         $data = $this->connection->sendPut(
             $this->connection->getUrl() . "/" . $resource . ".json?code-in-response=true",
@@ -435,7 +433,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function update(\UniMapper\Query\Update $query)
     {
-        $resource = $query->getResource();
+        $resource = $this->getResource($query->entityReflection);
 
         if (count($query->conditions) > 1) {
             throw new MapperException("More then 1 condition is not allowed");
@@ -461,13 +459,13 @@ class FlexibeeMapper extends \UniMapper\Mapper
         return $this->getStatus($data);
     }
 
-    protected function getSelection(\UniMapper\Query $query)
+    protected function getSelection(EntityReflection $entityReflection, array $selection = array())
     {
-        $selection = parent::getSelection($query);
+        $selection = parent::getSelection($entityReflection, $selection);
 
         // Remove properties with @ char (polozky@removeAll)
         foreach ($selection as $index => $item) {
-            if (strpos($item, "@")) {
+            if (strpos($item, "@") !== false) {
                 unset($selection[$index]);
             }
         }
