@@ -203,6 +203,26 @@ class FlexibeeMapper extends \UniMapper\Mapper
         );
     }
 
+    /**
+     * Custom query
+     *
+     * @param \UniMapper\Query\Custom $query Query
+     *
+     * @return mixed
+     */
+    public function custom(\UniMapper\Query\Custom $query)
+    {
+        $url = $this->connection->getUrl() . "/" . rawurlencode($query->query);
+
+        if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
+            return $this->connection->sendGet($url);
+        } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
+            return $this->connection->sendPut($url, $query->data);
+        }
+
+        throw new MapperException("Not implemented!");
+    }
+
     public function count(\UniMapper\Query\Count $query)
     {
         // Get URL
