@@ -45,7 +45,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         }
 
         $data = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . $resource . ".json",
+            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".json",
             json_encode(
                 array(
                     "winstrom" => array(
@@ -103,7 +103,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Create URL
         $url = $this->connection->getUrl()
-            . "/" . $resource
+            . "/" . rawurlencode($resource)
             . "/" . rawurlencode($query->primaryValue)
             . ".json";
 
@@ -151,7 +151,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $resource = $this->getResource($query->entityReflection);
 
         // Get URL
-        $url = $this->connection->getUrl() . "/" . $resource;
+        $url = $this->connection->getUrl() . "/" . rawurlencode($resource);
 
         // Apply conditions
         if (count($query->conditions > 0)) {
@@ -206,7 +206,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
     public function count(\UniMapper\Query\Count $query)
     {
         // Get URL
-        $url = $this->connection->getUrl() . "/" . $this->getResource($query->entityReflection);
+        $url = $this->connection->getUrl() . "/" . rawurlencode($this->getResource($query->entityReflection));
 
         // Apply conditions
         if (count($query->conditions > 0)) {
@@ -229,7 +229,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $resource = $this->getResource($query->entityReflection);
 
         $data = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . $resource . ".json?code-in-response=true",
+            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".json?code-in-response=true",
             json_encode(
                 array(
                     "winstrom" => array(
@@ -446,7 +446,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $properties = array_merge($special, $properties);
 
         $data = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . $resource . ".json",
+            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".json",
             json_encode(
                 array(
                     "winstrom" => array(
