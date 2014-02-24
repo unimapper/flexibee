@@ -206,10 +206,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function custom(\UniMapper\Query\Custom $query)
     {
-        $url = $this->connection->getUrl() . "/" . rawurlencode($query->query);
-
+        $url = $this->connection->getUrl() . "/" . rawurlencode($this->getResource($query->entityReflection)) . "/" . $query->query;
         if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
-            return $this->connection->sendGet($url);
+            return $this->connection->sendGet($url)->winstrom;
         } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
             return $this->connection->sendPut($url, $query->data);
         }
