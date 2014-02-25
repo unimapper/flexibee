@@ -235,7 +235,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @param \UniMapper\Query\Insert $query Query
      *
-     * @return mixed
+     * @return mixed|null
      */
     public function insert(\UniMapper\Query\Insert $query)
     {
@@ -255,21 +255,22 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         $this->getStatus($data);
 
-        if (isset($data->winstrom->results)) {
-            foreach ($data->winstrom->results as $result) {
-                if (isset($result->ref)
-                    && strpos($result->ref, $resource) !== false)
-                {
-                    if (isset($result->code)) {
-                        return "code:" . $result->code;
-                    } elseif (isset($result->id)) {
-                        return $result->id;
+        if ($query->returnPrimaryValue) {
+            if (isset($data->winstrom->results)) {
+                foreach ($data->winstrom->results as $result) {
+                    if (isset($result->ref)
+                        && strpos($result->ref, $resource) !== false)
+                    {
+                        if (isset($result->code)) {
+                            return "code:" . $result->code;
+                        } elseif (isset($result->id)) {
+                            return $result->id;
+                        }
                     }
                 }
             }
+            throw new MapperException("Can not retrieve inserted primary value!");
         }
-
-        return false;
     }
 
      /**
