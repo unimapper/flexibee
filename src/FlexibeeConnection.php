@@ -17,9 +17,6 @@ class FlexibeeConnection
     /** @var \Httpful\Request $template Request template */
     private $template;
 
-    /** @var array $responses Logged responses */
-    protected $responses = array();
-
     /**
      * Constructor
      *
@@ -29,11 +26,6 @@ class FlexibeeConnection
     {
         $this->url = $config["host"] . "/c/" . $config["company"];
         $this->template = $this->createTemplate($config);
-    }
-
-    private function logResponse(\Httpful\Response $response)
-    {
-        $this->responses[] = $response;
     }
 
     /**
@@ -53,16 +45,6 @@ class FlexibeeConnection
                 ->followRedirects(true);
         }
         return $template;
-    }
-
-    /**
-     * Get logged responses
-     *
-     * @return array
-     */
-    public function getResponses()
-    {
-        return $this->responses;
     }
 
     /**
@@ -88,7 +70,6 @@ class FlexibeeConnection
         Request::ini($this->template);
         $request = Request::get($url);
         $response = $request->send();
-        $this->logResponse($response);
 
         if ($response->hasErrors()) {
             if (isset($response->body->winstrom->message)) {
@@ -118,7 +99,6 @@ class FlexibeeConnection
         Request::ini($this->template);
         $request = Request::put($url, $payload, $contentType);
         $response = $request->send();
-        $this->logResponse($response);
 
         if ($response->hasErrors()) {
             preg_match('/.*\"message\":\"(.*)\".*/i', $response->raw_body, $errors);
