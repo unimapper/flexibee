@@ -149,7 +149,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Apply conditions
         if (count($query->conditions > 0)) {
-            $url .= "/" . $this->getConditions($query);
+            $url .= "/" . rawurlencode("(" . $this->getConditions($query) . ")");
         }
 
         // Set response type
@@ -223,7 +223,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Apply conditions
         if (count($query->conditions > 0)) {
-            $url .= "/" . $this->getConditions($query);
+            $url .= "/" . rawurlencode("(" . $this->getConditions($query) . ")");
         }
 
         $result = $this->connection->sendGet($url . ".json?detail=id&add-row-count=true");
@@ -337,7 +337,11 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $result = null;
         foreach ($query->conditions as $condition) {
 
+            // Skip unrelated conditions
             $propertyName = $condition->getExpression();
+            if (!isset($properties[$propertyName])) {
+                continue;
+            }
 
             // Apply defined mapping from entity
             $mappedPropertyName = $properties[$propertyName]->getMapping()->getName($this->name);
@@ -352,7 +356,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
             $value = $condition->getValue();
             if (is_array($value)) {
-                $value = "(" . implode(",", $value) . ")";
+                $value = "('" . implode("','", $value) . "')";
             } else {
                 $leftPercent = $rightPercent = false;
                 if (substr($value, 0, 1) === "%") {
@@ -363,6 +367,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
                     $value = substr($value, 0, -1);
                     $rightPercent = true;
                 }
+                $value = "'" . $value . "'";
             }
 
             $operator = $condition->getOperator();
@@ -376,17 +381,17 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 }
             }
 
-            $url = $propertyName . $operator . "'" . $value . "'";
+            $formatedCondition = $propertyName . " " . $operator . " " . $value;
 
             // Check if is it first condition
             if ($result == null) {
-                $result = $url;
+                $result = $formatedCondition;
             } else {
-                $result .= " and " . $url;
+                $result .= " and " . $formatedCondition;
             }
         }
 
-        return rawurlencode("(" . $result . ")");
+        return $result;
     }
 
     /**
@@ -440,37 +445,33 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @param \UniMapper\Query\Update $query Query
      *
-     * @return mixed
-     *
-     * @todo After $primaryProperty implementation get primary key automatically
-     * @todo rename to updateOne() ??
+     * @return boolean
      */
     public function update(\UniMapper\Query\Update $query)
     {
         $resource = $this->getResource($query->entityReflection);
 
-        if (count($query->conditions) > 1) {
-            throw new MapperException("More then 1 condition is not allowed");
+        $values = $this->entityToData($query->entity);
+        if (empty($values)) {
+            return false;
         }
 
-        $properties = $this->entityToData($query->entity);
-        $special["@id"] = $query->conditions[0]->getValue();
+        $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
+        $xmlResource = $xml->addChild($resource);
+        $xmlResource->addAttribute("filter", $this->getConditions($query));
+        foreach ($values as $name => $value) {
+            $xmlResource->addChild($name, $value);
+        }
 
-        // @todo workaround: bug in Flexibee? @id must be first!
-        $properties = array_merge($special, $properties);
-
-        $data = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".json",
-            json_encode(
-                array(
-                    "winstrom" => array(
-                        $resource => $properties
-                    )
-                )
-            )
+        $result = $this->connection->sendPut(
+            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".xml",
+            $xml->asXML(),
+            "application/xml"
         );
 
-        return $this->getStatus($data);
+        $this->getStatus($result);
+
+        return true;
     }
 
     protected function getSelection(EntityReflection $entityReflection, array $selection = array())
