@@ -38,6 +38,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
             throw new MapperException("Only one condition is allowed!");
         }
 
+        list(, , $value) = $query->conditions[0];
+
         $data = $this->connection->sendPut(
             $this->connection->getUrl() . "/" . rawurlencode($resource) . ".json",
             json_encode(
@@ -45,7 +47,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
                     "winstrom" => array(
                         $resource => array(
                             "@action" => "delete",
-                            "@id" => $query->conditions[0]->value
+                            "@id" => $value
                         )
                     )
                 )
@@ -337,24 +339,22 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $result = null;
         foreach ($query->conditions as $condition) {
 
+            list($propertyName, $operator, $value, $joiner) = $condition;
+
             // Skip unrelated conditions
-            $propertyName = $condition->getExpression();
             if (!isset($properties[$propertyName])) {
                 continue;
             }
 
             // Apply defined mapping from entity
-            $mappedPropertyName = $properties[$propertyName]->getMapping()->getName($this->name);
-            if ($mappedPropertyName) {
-                $propertyName = $mappedPropertyName;
+            $mapping = $properties[$propertyName]->getMapping();
+            if ($mapping) {
+                $mappedPropertyName = $mapping->getName($this->name);
+                if ($mappedPropertyName) {
+                    $propertyName = $mappedPropertyName;
+                }
             }
 
-            $operator = $condition->getOperator();
-            if ($operator === "COMPARE") {
-                $operator = "LIKE SIMILAR";
-            }
-
-            $value = $condition->getValue();
             if (is_array($value)) {
                 $value = "('" . implode("','", $value) . "')";
             } else {
@@ -370,7 +370,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 $value = "'" . $value . "'";
             }
 
-            $operator = $condition->getOperator();
             if ($operator === "COMPARE") {
                 if ($rightPercent && !$leftPercent) {
                     $operator = "BEGINS";
@@ -387,7 +386,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
             if ($result == null) {
                 $result = $formatedCondition;
             } else {
-                $result .= " and " . $formatedCondition;
+                $result .= " " . $joiner . " " . $formatedCondition;
             }
         }
 
