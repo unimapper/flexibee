@@ -34,27 +34,20 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         $resource = $this->getResource($query->entityReflection);
 
-        if (count($query->conditions) > 1) {
-            throw new MapperException("Only one condition is allowed!");
-        }
+        $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
+        $xmlResource = $xml->addChild($resource);
+        $xmlResource->addAttribute("filter", $this->getConditions($query));
+        $xmlResource->addAttribute("action", "delete");
 
-        list(, , $value) = $query->conditions[0];
-
-        $data = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".json",
-            json_encode(
-                array(
-                    "winstrom" => array(
-                        $resource => array(
-                            "@action" => "delete",
-                            "@id" => $value
-                        )
-                    )
-                )
-            )
+        $result = $this->connection->sendPut(
+            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".xml",
+            $xml->asXML(),
+            "application/xml"
         );
 
-        return $this->getStatus($data);
+        $this->getStatus($result);
+
+        return true;
     }
 
     /**
@@ -208,7 +201,11 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function custom(\UniMapper\Query\Custom $query)
     {
-        $url = $this->connection->getUrl() . "/" . rawurlencode($this->getResource($query->entityReflection)) . "/" . $query->query;
+        $url = $this->connection->getUrl() . "/" . rawurlencode($this->getResource($query->entityReflection));
+        if ($query->query) {
+            $url .= "/" . $query->query;
+        }
+
         if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
             return $this->connection->sendGet($url)->winstrom;
         } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
