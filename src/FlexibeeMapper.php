@@ -62,15 +62,15 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     protected function setCodeId($data, $resourceName)
     {
-        if (!isset($data->winstrom->{$resourceName})) {
+        if (!isset($data->{$resourceName})) {
             throw new MapperException("Unknown response, 'code:' prefix missing?!");
         }
 
-        foreach ($data->winstrom->{$resourceName} as $iterator => $row) {
+        foreach ($data->{$resourceName} as $iterator => $row) {
             if (isset($row->{"external-ids"}[0])
                 && substr($row->{"external-ids"}[0],0,5) === "code:"
             ) {
-                $data->winstrom->{$resourceName}[$iterator]->id =
+                $data->{$resourceName}[$iterator]->id =
                     $row->{"external-ids"}[0];
             }
         }
@@ -109,19 +109,19 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $data = $this->connection->sendGet($url . "?" . implode("&", $parameters));
 
         // Check if request failed
-        if (isset($data->winstrom->success)
-            && $data->winstrom->success === "false") {
-            throw new MapperException($data->winstrom->message);
+        if (isset($data->success)
+            && $data->success === "false") {
+            throw new MapperException($data->message);
         }
 
-        if (!isset($data->winstrom->{$resource}[0])) {
+        if (!isset($data->{$resource}[0])) {
             return false;
         }
 
         $entityClass = $query->entityReflection->getName();
 
         return $this->dataToEntity(
-            $this->setCodeId($data, $resource)->winstrom->{$resource}[0],
+            $this->setCodeId($data, $resource)->{$resource}[0],
             new $entityClass
         );
     }
@@ -175,18 +175,18 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $data = $this->connection->sendGet($url . "?" . implode("&", $parameters));
 
         // Check if request failed
-        if (isset($data->winstrom->success)
-            && $data->winstrom->success === "false") {
-            throw new MapperException($data->winstrom->message);
+        if (isset($data->success)
+            && $data->success === "false") {
+            throw new MapperException($data->message);
         }
 
-        if (count($data->winstrom->{$resource}) === 0) {
+        if (count($data->{$resource}) === 0) {
             return false;
         }
 
         // Set ID and return data
         return $this->dataToCollection(
-            $this->setCodeId($data, $resource)->winstrom->{$resource},
+            $this->setCodeId($data, $resource)->{$resource},
             $query->entityReflection->getName(),
             $query->entityReflection->getPrimaryProperty()
         );
@@ -207,7 +207,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         }
 
         if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
-            return $this->connection->sendGet($url)->winstrom;
+            return $this->connection->sendGet($url);
         } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
             return $this->connection->sendPut($url, $query->data);
         }
@@ -226,7 +226,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         }
 
         $result = $this->connection->sendGet($url . ".json?detail=id&add-row-count=true");
-        return $result->winstrom->{"@rowCount"};
+        return $result->{"@rowCount"};
     }
 
     /**
@@ -255,8 +255,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $this->getStatus($data);
 
         if ($query->returnPrimaryValue) {
-            if (isset($data->winstrom->results)) {
-                foreach ($data->winstrom->results as $result) {
+            if (isset($data->results)) {
+                foreach ($data->results as $result) {
                     if (isset($result->ref)
                         && strpos($result->ref, $resource) !== false)
                     {
@@ -284,12 +284,12 @@ class FlexibeeMapper extends \UniMapper\Mapper
     protected function getStatus($data)
     {
         // Check if request failed
-        if (isset($data->winstrom->success)
-            && $data->winstrom->success === "false") {
+        if (isset($data->success)
+            && $data->success === "false") {
 
-            if (isset($data->winstrom->results[0]->errors[0])) {
+            if (isset($data->results[0]->errors[0])) {
 
-                $errorDetails = $data->winstrom->results[0]->errors[0];
+                $errorDetails = $data->results[0]->errors[0];
                 $error = "";
 
                 if (isset($errorDetails->message)) {
@@ -310,8 +310,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 throw new \Exception("Flexibee error: {$error}");
             }
 
-            if (isset($data->winstrom->message)) {
-                throw new \Exception("Flexibee error: {$data->winstrom->message}");
+            if (isset($data->message)) {
+                throw new \Exception("Flexibee error: {$data->message}");
             }
 
             throw new MapperException("An unknown flexibee error occurred");

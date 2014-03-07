@@ -83,6 +83,9 @@ class FlexibeeConnection
             throw new FlexibeeException($message, $request);
         }
 
+        if (isset($response->body->winstrom)) {
+            return $response->body->winstrom;
+        }
         return $response->body;
     }
 
@@ -111,6 +114,9 @@ class FlexibeeConnection
             throw new FlexibeeException($message, $request);
         }
 
+        if (isset($response->body->winstrom)) {
+            return $response->body->winstrom;
+        }
         return $response->body;
     }
 
