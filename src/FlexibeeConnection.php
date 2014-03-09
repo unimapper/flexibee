@@ -12,7 +12,7 @@ class FlexibeeConnection
 {
 
     /** @var string */
-    private $url;
+    private $baseUrl;
 
     /** @var \Httpful\Request $template Request template */
     private $template;
@@ -24,7 +24,7 @@ class FlexibeeConnection
      */
     public function __construct($config)
     {
-        $this->url = $config["host"] . "/c/" . $config["company"];
+        $this->baseUrl = $config["host"] . "/c/" . $config["company"];
         $this->template = $this->createTemplate($config);
     }
 
@@ -52,9 +52,9 @@ class FlexibeeConnection
      *
      * @return string
      */
-    public function getUrl()
+    public function getBaseUrl()
     {
-        return $this->url;
+        return $this->baseUrl;
     }
 
     /**
@@ -65,8 +65,9 @@ class FlexibeeConnection
      * @return \stdClass | \SimpleXMLElement Output format depends on selected
      *                                       format in URL.
      */
-    public function sendGet($url)
+    public function get($url)
     {
+        $url = $this->baseUrl . "/" . $url;
         Request::ini($this->template);
         $request = Request::get($url);
         $response = $request->send();
@@ -97,8 +98,9 @@ class FlexibeeConnection
      *
      * @return string
      */
-    public function sendPut($url, $payload, $contentType = "application/json")
+    public function put($url, $payload, $contentType = "application/json")
     {
+        $url = $this->baseUrl . "/" . $url;
         Request::ini($this->template);
         $request = Request::put($url, $payload, $contentType);
         $response = $request->send();

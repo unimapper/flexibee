@@ -39,8 +39,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $xmlResource->addAttribute("filter", $this->getConditions($query));
         $xmlResource->addAttribute("action", "delete");
 
-        $result = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".xml",
+        $result = $this->connection->put(
+            rawurlencode($resource) . ".xml",
             $xml->asXML(),
             "application/xml"
         );
@@ -91,8 +91,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $resource = $this->getResource($query->entityReflection);
 
         // Create URL
-        $url = $this->connection->getUrl()
-            . "/" . rawurlencode($resource)
+        $url = rawurlencode($resource)
             . "/" . rawurlencode($query->primaryValue)
             . ".json";
 
@@ -106,7 +105,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $parameters[] = "code-as-id=true";
 
         // Get data
-        $data = $this->connection->sendGet($url . "?" . implode("&", $parameters));
+        $data = $this->connection->get($url . "?" . implode("&", $parameters));
 
         // Check if request failed
         if (isset($data->success)
@@ -140,7 +139,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $resource = $this->getResource($query->entityReflection);
 
         // Get URL
-        $url = $this->connection->getUrl() . "/" . rawurlencode($resource);
+        $url = rawurlencode($resource);
 
         // Apply conditions
         if (count($query->conditions > 0)) {
@@ -172,7 +171,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $parameters[] = "code-as-id=true";
 
         // Request data
-        $data = $this->connection->sendGet($url . "?" . implode("&", $parameters));
+        $data = $this->connection->get($url . "?" . implode("&", $parameters));
 
         // Check if request failed
         if (isset($data->success)
@@ -200,15 +199,15 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function custom(\UniMapper\Query\Custom $query)
     {
-        $url = $this->connection->getUrl() . "/" . rawurlencode($this->getResource($query->entityReflection));
+        $url = rawurlencode($this->getResource($query->entityReflection));
         if ($query->query) {
             $url .= "/" . $query->query;
         }
 
         if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
-            return $this->connection->sendGet($url);
+            return $this->connection->get($url);
         } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
-            return $this->connection->sendPut($url, $query->data);
+            return $this->connection->put($url, $query->data);
         }
 
         throw new MapperException("Not implemented!");
@@ -217,14 +216,14 @@ class FlexibeeMapper extends \UniMapper\Mapper
     public function count(\UniMapper\Query\Count $query)
     {
         // Get URL
-        $url = $this->connection->getUrl() . "/" . rawurlencode($this->getResource($query->entityReflection));
+        $url = rawurlencode($this->getResource($query->entityReflection));
 
         // Apply conditions
         if (count($query->conditions > 0)) {
             $url .= "/" . rawurlencode("(" . $this->getConditions($query) . ")");
         }
 
-        $result = $this->connection->sendGet($url . ".json?detail=id&add-row-count=true");
+        $result = $this->connection->get($url . ".json?detail=id&add-row-count=true");
         return $result->{"@rowCount"};
     }
 
@@ -239,8 +238,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         $resource = $this->getResource($query->entityReflection);
 
-        $data = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".json?code-in-response=true",
+        $data = $this->connection->put(
+            rawurlencode($resource) . ".json?code-in-response=true",
             json_encode(
                 array(
                     "winstrom" => array(
@@ -274,7 +273,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      /**
      * Get status of result of send request to Flexibee
      *
-     * @param string $data Data from sendPut
+     * @param string $data Data from request
      *
      * @return string
      *
@@ -458,8 +457,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
             $xmlResource->addChild($name, $value);
         }
 
-        $result = $this->connection->sendPut(
-            $this->connection->getUrl() . "/" . rawurlencode($resource) . ".xml",
+        $result = $this->connection->put(
+            rawurlencode($resource) . ".xml",
             $xml->asXML(),
             "application/xml"
         );
