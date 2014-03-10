@@ -130,7 +130,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @param \UniMapper\Query\FindAll $query Query
      *
-     * @return integer|mixed
+     * @return \UniMapper\EntityCollection|false
      *
      * @throws \UniMapper\Exceptions\MapperException
      */
