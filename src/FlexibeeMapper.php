@@ -207,7 +207,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
             return $this->connection->get($url);
         } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
-            return $this->connection->put($url, $query->data);
+            return $this->connection->put($url . ".json", array("flexibee" => $query->data)); // @todo
         }
 
         throw new MapperException("Not implemented!");
@@ -454,7 +454,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $xmlResource = $xml->addChild($resource);
         $xmlResource->addAttribute("filter", $this->getConditions($query));
         foreach ($values as $name => $value) {
-            $xmlResource->addChild($name, $value);
+            if (!is_array($value)) {    // @todo skip arrays temporary
+                $xmlResource->addChild($name, $value);
+            }
         }
 
         $result = $this->connection->put(
