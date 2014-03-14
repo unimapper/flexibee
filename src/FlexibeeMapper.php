@@ -449,9 +449,22 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
         $xmlResource = $xml->addChild($resource);
         $xmlResource->addAttribute("filter", $this->getConditions($query));
+
+
         foreach ($values as $name => $value) {
             if (!is_array($value)) {    // @todo skip arrays temporary
-                $xmlResource->addChild($name, $value);
+
+                // @todo Experimental support for @attribute (@removeAll)
+                $specialAttributes = array();
+                if (strpos($name, "@") !== false) {
+                    $specialAttributes = explode("@", $name);
+                    $name = array_shift($specialAttributes);
+                }
+
+                $itemResource = $xmlResource->addChild($name, $value);
+                foreach ($specialAttributes as $attribute) {
+                    $itemResource->addAttribute($attribute, $value);
+                }
             }
         }
 
