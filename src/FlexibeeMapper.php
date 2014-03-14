@@ -157,12 +157,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
             $parameters = $this->convertOrder($query->orders, $query);
         }
 
-        if ($query->offset) {
-            $parameters[] = "start=" . $query->offset;
-        }
-        if ($query->limit) {
-            $parameters[] = "limit=" . $query->limit;
-        }
+        $parameters[] = "start=" . (int) $query->offset;
+        $parameters[] = "limit=" . (int) $query->limit;
 
         // Add custom fields from entity properties definitions
         $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->getSelection($query->entityReflection)));
