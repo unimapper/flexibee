@@ -2,8 +2,7 @@
 
 namespace UniMapper\Mapper;
 
-use UniMapper\Query\Object\Order,
-    UniMapper\Reflection\EntityReflection,
+use UniMapper\Reflection\EntityReflection,
     UniMapper\Connection\FlexibeeConnection,
     UniMapper\Exceptions\MapperException;
 
@@ -153,8 +152,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $parameters = array();
 
         // Add order
-        if (count($query->orders) > 0) {
-            $parameters = $this->convertOrder($query->orders, $query);
+        if (count($query->orderBy) > 0) {
+            $parameters = $this->convertOrder($query->orderBy, $query);
         }
 
         $parameters[] = "start=" . (int) $query->offset;
@@ -387,8 +386,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
     /**
      * Convert order to URL format
      *
-     * @param array            $orderBy Collection of \UniMapper\Query\Object\Order
-     * @param \UniMapper\Query $query   Query object
+     * @param array            $orderBy
+     * @param \UniMapper\Query $query
      *
      * @return array
      *
@@ -397,15 +396,11 @@ class FlexibeeMapper extends \UniMapper\Mapper
     protected function convertOrder(array $orderBy, \UniMapper\Query $query)
     {
         $result = array();
-        foreach ($orderBy as $order) {
-
-            if (!$order instanceof Order) {
-                throw new MapperException("Order collection must contain only \UniMapper\Query\Object\Order objects!");
-            }
+        foreach ($orderBy as $item) {
 
             // Set direction
             $direction = "D";
-            if ($order->asc) {
+            if ($item[1] === "asc") {
                 $direction = "A";
             }
 
@@ -413,16 +408,16 @@ class FlexibeeMapper extends \UniMapper\Mapper
             $properties = $query->entityReflection->getProperties($this->name);
 
             // Skip properties not related to this mapper
-            if (!isset($properties[$order->propertyName])) {
+            if (!isset($properties[$item[0]])) {
                 continue;
             }
 
             // Map property
-            $mapping = $properties[$order->propertyName]->getMapping();
+            $mapping = $properties[$item[0]]->getMapping();
             if ($mapping) {
                 $propertyName = $mapping->getName($this->name);
             } else {
-                $propertyName = $order->propertyName;
+                $propertyName = $item[0];
             }
 
             $result[] = "order=" . rawurlencode($propertyName  . "@" . $direction);
