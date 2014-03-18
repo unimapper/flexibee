@@ -119,6 +119,41 @@ class FlexibeeConnection
         if (isset($response->body->winstrom)) {
             return $response->body->winstrom;
         }
+
+        // Check if request failed
+        if (isset($response->body->success)
+            && $response->body->success === "false") {
+
+            if (isset($response->body->results[0]->errors[0])) {
+
+                $errorDetails = $response->body->results[0]->errors[0];
+                $error = "";
+
+                if (isset($errorDetails->message)) {
+                    $error .= " MESSAGE: {$errorDetails->message}";
+                }
+                if (isset($errorDetails->for)) {
+                    $error .= " FOR: {$errorDetails->for}";
+                }
+                if (isset($errorDetails->value)) {
+                    $error .= " VALUE: {$errorDetails->value}";
+                }
+                if (isset($errorDetails->code)) {
+                    $error .= " CODE: {$errorDetails->code}";
+                }
+            }
+
+            if (isset($error)) {
+                throw new FlexibeeException("Flexibee error: {$error}");
+            }
+
+            if (isset($response->body->message)) {
+                throw new FlexibeeException("Flexibee error: " . $response->body->message, $request);
+            }
+
+            throw new FlexibeeException("An unknown flexibee error occurred", $request);
+        }
+
         return $response->body;
     }
 

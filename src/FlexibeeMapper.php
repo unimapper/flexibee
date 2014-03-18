@@ -44,8 +44,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
             "application/xml"
         );
 
-        $this->getStatus($result);
-
         return true;
     }
 
@@ -245,8 +243,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
             )
         );
 
-        $this->getStatus($data);
-
         if ($query->returnPrimaryValue) {
             if (isset($data->results)) {
                 foreach ($data->results as $result) {
@@ -263,54 +259,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
             }
             throw new MapperException("Can not retrieve inserted primary value!");
         }
-    }
-
-     /**
-     * Get status of result of send request to Flexibee
-     *
-     * @param string $data Data from request
-     *
-     * @return string
-     *
-     * @throws \Exception
-     */
-    protected function getStatus($data)
-    {
-        // Check if request failed
-        if (isset($data->success)
-            && $data->success === "false") {
-
-            if (isset($data->results[0]->errors[0])) {
-
-                $errorDetails = $data->results[0]->errors[0];
-                $error = "";
-
-                if (isset($errorDetails->message)) {
-                    $error .= " MESSAGE: {$errorDetails->message}";
-                }
-                if (isset($errorDetails->for)) {
-                    $error .= " FOR: {$errorDetails->for}";
-                }
-                if (isset($errorDetails->value)) {
-                    $error .= " VALUE: {$errorDetails->value}";
-                }
-                if (isset($errorDetails->code)) {
-                    $error .= " CODE: {$errorDetails->code}";
-                }
-            }
-
-            if (isset($error)) {
-                throw new \Exception("Flexibee error: {$error}");
-            }
-
-            if (isset($data->message)) {
-                throw new \Exception("Flexibee error: {$data->message}");
-            }
-
-            throw new MapperException("An unknown flexibee error occurred");
-        }
-
-        return $data;
     }
 
     /**
@@ -468,8 +416,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
             $xml->asXML(),
             "application/xml"
         );
-
-        $this->getStatus($result);
 
         return true;
     }
