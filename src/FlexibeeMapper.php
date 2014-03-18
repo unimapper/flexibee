@@ -2,7 +2,7 @@
 
 namespace UniMapper\Mapper;
 
-use UniMapper\Reflection\EntityReflection,
+use UniMapper\Reflection,
     UniMapper\Connection\FlexibeeConnection,
     UniMapper\Exceptions\MapperException;
 
@@ -420,7 +420,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         return true;
     }
 
-    protected function getSelection(EntityReflection $entityReflection, array $selection = array())
+    protected function getSelection(Reflection\Entity $entityReflection, array $selection = array())
     {
         $selection = parent::getSelection($entityReflection, $selection);
 
