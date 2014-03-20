@@ -28,6 +28,11 @@ class FlexibeeConnection
         $this->template = $this->createTemplate($config);
     }
 
+    public function setAuthUser($username)
+    {
+        $this->template->addHeader("X-FlexiBee-Authorization", $username);
+    }
+
     /**
      * Create request template from given configuration
      *
