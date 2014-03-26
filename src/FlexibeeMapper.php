@@ -35,7 +35,12 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
         $xmlResource = $xml->addChild($resource);
-        $xmlResource->addAttribute("filter", $this->getConditions($query));
+        $xmlResource->addAttribute(
+            "filter",
+            $this->convertConditions(
+                $this->translateConditions($query->entityReflection, $query->conditions)
+            )
+        );
         $xmlResource->addAttribute("action", "delete");
 
         $result = $this->connection->put(
@@ -140,7 +145,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Apply conditions
         if (count($query->conditions > 0)) {
-            $url .= "/" . rawurlencode("(" . $this->getConditions($query) . ")");
+            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->translateConditions($query->entityReflection, $query->conditions)) . ")");
         }
 
         // Set response type
@@ -213,7 +218,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Apply conditions
         if (count($query->conditions > 0)) {
-            $url .= "/" . rawurlencode("(" . $this->getConditions($query) . ")");
+            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->translateConditions($query->entityReflection, $query->conditions)) . ")");
         }
 
         $result = $this->connection->get($url . ".json?detail=id&add-row-count=true");
@@ -261,70 +266,61 @@ class FlexibeeMapper extends \UniMapper\Mapper
         }
     }
 
-    /**
-     * Get mapped conditions from query
-     *
-     * @param \UniMapper\Query $query Query object
-     *
-     * @return string
-     *
-     * @throws \UniMapper\Exceptions\MapperException
-     */
-    protected function getConditions(\UniMapper\Query $query)
+    protected function convertConditions(array $conditions)
     {
-        $properties = $query->entityReflection->getProperties($this->name);
-
         $result = null;
-        foreach ($query->conditions as $condition) {
 
-            list($propertyName, $operator, $value, $joiner) = $condition;
+        foreach ($conditions as $condition) {
 
-            // Skip unrelated conditions
-            if (!isset($properties[$propertyName])) {
-                continue;
-            }
+            if (is_array($condition[0])) {
+                // Nested conditions
 
-            // Apply defined mapping from entity
-            $mapping = $properties[$propertyName]->getMapping();
-            if ($mapping) {
-                $mappedPropertyName = $mapping->getName($this->name);
-                if ($mappedPropertyName) {
-                    $propertyName = $mappedPropertyName;
+                list($nestedConditions, $joiner) = $condition;
+                $converted = "(" . $this->convertConditions($nestedConditions) . ")";
+                // Add joiner if not first condition
+                if ($result !== null) {
+                    $result .= " " . $joiner . " ";
                 }
-            }
+                $result .= $converted;
 
-            if (is_array($value)) {
-                $value = "('" . implode("','", $value) . "')";
             } else {
-                $leftPercent = $rightPercent = false;
-                if (substr($value, 0, 1) === "%") {
-                    $value = substr($value, 1);
-                    $leftPercent = true;
-                }
-                if (substr($value, -1) === "%") {
-                    $value = substr($value, 0, -1);
-                    $rightPercent = true;
-                }
-                $value = "'" . $value . "'";
-            }
+                // Simple condition
 
-            if ($operator === "COMPARE") {
-                if ($rightPercent && !$leftPercent) {
-                    $operator = "BEGINS";
-                } elseif ($leftPercent && !$rightPercent) {
-                    $operator = "ENDS";
+                list($propertyName, $operator, $value, $joiner) = $condition;
+
+                if (is_array($value)) {
+                    $value = "('" . implode("','", $value) . "')";
                 } else {
-                    $operator = "LIKE SIMILAR";
+                    $leftPercent = $rightPercent = false;
+                    if (substr($value, 0, 1) === "%") {
+                        $value = substr($value, 1);
+                        $leftPercent = true;
+                    }
+                    if (substr($value, -1) === "%") {
+                        $value = substr($value, 0, -1);
+                        $rightPercent = true;
+                    }
+                    $value = "'" . $value . "'";
                 }
-            }
 
-            $formatedCondition = $propertyName . " " . $operator . " " . $value;
+                if ($operator === "COMPARE") {
+                    if ($rightPercent && !$leftPercent) {
+                        $operator = "BEGINS";
+                    } elseif ($leftPercent && !$rightPercent) {
+                        $operator = "ENDS";
+                    } else {
+                        $operator = "LIKE SIMILAR";
+                    }
+                }
 
-            // Check if is it first condition
-            if ($result == null) {
-                $result = $formatedCondition;
-            } else {
-                $result .= " " . $joiner . " " . $formatedCondition;
+                $formatedCondition = $propertyName . " " . $operator . " " . $value;
+
+                // Check if is it first condition
+                if ($result === null) {
+                    $result = $formatedCondition;
+                } else {
+                    $result .= " " . $joiner . " " . $formatedCondition;
+                }
             }
         }
 
@@ -391,7 +387,12 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
         $xmlResource = $xml->addChild($resource);
-        $xmlResource->addAttribute("filter", $this->getConditions($query));
+        $xmlResource->addAttribute(
+            "filter",
+            $this->convertConditions(
+                $this->translateConditions($query->entityReflection, $query->conditions)
+            )
+        );
 
 
         foreach ($values as $name => $value) {
