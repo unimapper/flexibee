@@ -43,7 +43,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         );
         $xmlResource->addAttribute("action", "delete");
 
-        $result = $this->connection->put(
+        $this->connection->put(
             rawurlencode($resource) . ".xml",
             $xml->asXML(),
             "application/xml"
@@ -121,7 +121,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         $entityClass = $query->entityReflection->getName();
 
-        return $this->createEntity(
+        return $this->mapEntity(
             $entityClass,
             $this->setCodeId($data, $resource)->{$resource}[0]
         );
@@ -182,7 +182,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         }
 
         // Set ID and return data
-        return $this->createCollection(
+        return $this->mapCollection(
             $query->entityReflection->getName(),
             $this->setCodeId($data, $resource)->{$resource}
         );
@@ -242,7 +242,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 array(
                     "winstrom" => array(
                         "@update" => "ok",
-                        $resource => $this->entityToData($query->entity)
+                        $resource => $this->unmapEntity($query->entity)
                     )
                 )
             )
@@ -380,7 +380,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         $resource = $this->getResource($query->entityReflection);
 
-        $values = $this->entityToData($query->entity);
+        $values = $this->unmapEntity($query->entity);
         if (empty($values)) {
             return false;
         }
