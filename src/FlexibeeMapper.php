@@ -13,6 +13,8 @@ use UniMapper\Reflection,
 class FlexibeeMapper extends \UniMapper\Mapper
 {
 
+    const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
+
     /** @var \DibiConnection $connection Dibi connection */
     protected $connection;
 
@@ -20,6 +22,15 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         parent::__construct($name);
         $this->connection = $connection;
+    }
+
+    protected function unmapValue($value)
+    {
+        $value = parent::unmapValue($value);
+        if ($value instanceof \DateTime) {
+            $value = $value->format(self::DATETIME_FORMAT);
+        }
+        return $value;
     }
 
     /**
@@ -292,7 +303,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 if (is_array($value)) {
                     $value = "('" . implode("','", $value) . "')";
                 } elseif ($value instanceof \DateTime) {
-                    $value = "'" . $value->format("Y-m-d\TH:i:sP") . "'";
+                    $value = "'" . $value->format(self::DATETIME_FORMAT) . "'";
                 } else {
                     $leftPercent = $rightPercent = false;
                     if (substr($value, 0, 1) === "%") {
