@@ -288,8 +288,11 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
                 list($propertyName, $operator, $value, $joiner) = $condition;
 
+                // Value
                 if (is_array($value)) {
                     $value = "('" . implode("','", $value) . "')";
+                } elseif ($value instanceof \DateTime) {
+                    $value = "'" . $value->format("Y-m-d\TH:i:sP") . "'";
                 } else {
                     $leftPercent = $rightPercent = false;
                     if (substr($value, 0, 1) === "%") {
@@ -303,6 +306,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
                     $value = "'" . $value . "'";
                 }
 
+                // Operator
                 if ($operator === "COMPARE") {
                     if ($rightPercent && !$leftPercent) {
                         $operator = "BEGINS";
