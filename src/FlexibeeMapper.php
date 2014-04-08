@@ -440,14 +440,22 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         $selection = parent::getSelection($entityReflection, $selection);
 
-        // Remove properties with @ char (polozky@removeAll), except @showAs
+        // Escape properties with @ char (polozky@removeAll), @showAs ...
         foreach ($selection as $index => $item) {
-            $selection[$index] = rtrim($item, "@showAs");
-            if (strpos($selection[$index], "@") !== false) {
-                unset($selection[$index]);
+
+            if ($this->endsWith($item, "@removeAll")) {
+                $selection[$index] = substr($item, 0, -10);
+            } elseif ($this->endsWith($item, "@showAs")) {
+                $selection[$index] = substr($item, 0, -7);
             }
+
         }
         return $selection;
+    }
+
+    private function endsWith($haystack, $needle)
+    {
+        return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
     }
 
 }
