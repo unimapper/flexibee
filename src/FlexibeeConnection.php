@@ -62,6 +62,31 @@ class FlexibeeConnection
         return $this->baseUrl;
     }
 
+    public function delete($url)
+    {
+        $url = $this->baseUrl . "/" . $url;
+        Request::ini($this->template);
+        $request = Request::delete($url);
+        $response = $request->send();
+
+        if ($response->hasErrors()) {
+            if (isset($response->body->winstrom->message)) {
+                $message = "Error during DELETE from Flexibee: " .
+                    $response->body->winstrom->message .
+                    " (" . $url . ")";
+            } else {
+                $message = "Error during DELETE from Flexibee" .
+                    " (" . $url . ")";
+            }
+            throw new FlexibeeException($message, $request);
+        }
+
+        if (isset($response->body->winstrom)) {
+            return $response->body->winstrom;
+        }
+        return $response->body;
+    }
+
     /**
      * Send request and get data from response
      *
@@ -107,6 +132,11 @@ class FlexibeeConnection
     {
         $url = $this->baseUrl . "/" . $url;
         Request::ini($this->template);
+
+        if ($contentType === "application/json") {
+            $payload = json_encode(array("flexibee" => $payload));
+        }
+
         $request = Request::put($url, $payload, $contentType);
         $response = $request->send();
 

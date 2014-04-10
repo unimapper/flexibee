@@ -210,13 +210,23 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         $url = rawurlencode($this->getResource($query->entityReflection));
         if ($query->query) {
-            $url .= "/" . $query->query;
+            $url .= $query->query;
+        } else {
+            $url .= ".json";
+        }
+
+        if ($query->contentType) {
+            $contentType = $query->contentType;
+        } else {
+            $contentType = "application/json";
         }
 
         if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
             return $this->connection->get($url);
         } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
-            return $this->connection->put($url . ".json", array("flexibee" => $query->data)); // @todo
+            return $this->connection->put($url, $query->data, $contentType);
+        } elseif ($query->method === \UniMapper\Query\Custom::METHOD_DELETE) {
+            return $this->connection->delete($url);
         }
 
         throw new MapperException("Not implemented!");
@@ -249,13 +259,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         $data = $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
-            json_encode(
-                array(
-                    "winstrom" => array(
-                        "@update" => "ok",
-                        $resource => $this->unmapEntity($query->entity)
-                    )
-                )
+            array(
+                "@update" => "ok",
+                $resource => $this->unmapEntity($query->entity)
             )
         );
 
@@ -438,17 +444,15 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
     protected function getSelection(Reflection\Entity $entityReflection, array $selection = array())
     {
-        $selection = parent::getSelection($entityReflection, $selection);
-
         // Escape properties with @ char (polozky@removeAll), @showAs ...
+        $selection = parent::getSelection($entityReflection, $selection);
         foreach ($selection as $index => $item) {
 
             if ($this->endsWith($item, "@removeAll")) {
                 $selection[$index] = substr($item, 0, -10);
-            } elseif ($this->endsWith($item, "@showAs")) {
+            } elseif ($this->endsWith($item, "@showAs") || $this->endsWith($item, "@action")) {
                 $selection[$index] = substr($item, 0, -7);
             }
-
         }
         return $selection;
     }
