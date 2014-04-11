@@ -130,7 +130,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
             return false;
         }
 
-        $entityClass = $query->entityReflection->getName();
+        $entityClass = $query->entityReflection->getClassName();
 
         return $this->mapEntity(
             $entityClass,
@@ -194,7 +194,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Set ID and return data
         return $this->mapCollection(
-            $query->entityReflection->getName(),
+            $query->entityReflection->getClassName(),
             $this->setCodeId($data, $resource)->{$resource}
         );
     }
