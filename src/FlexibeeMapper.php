@@ -370,20 +370,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
             }
 
             // Map property name to defined mapping definition
-            $properties = $query->entityReflection->getProperties($this->name);
-
-            // Skip properties not related to this mapper
-            if (!isset($properties[$item[0]])) {
-                continue;
-            }
-
-            // Map property
-            $mapping = $properties[$item[0]]->getMapping();
-            if ($mapping) {
-                $propertyName = $mapping->getName($this->name);
-            } else {
-                $propertyName = $item[0];
-            }
+            $properties = $query->entityReflection->getProperties();
+            $propertyName = $properties[$item[0]]->getMappedName();
 
             $result[] = "order=" . rawurlencode($propertyName  . "@" . $direction);
         }
