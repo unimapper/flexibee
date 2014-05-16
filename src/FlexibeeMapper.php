@@ -27,7 +27,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
     protected function unmapValue($value)
     {
         $value = parent::unmapValue($value);
-        if ($value instanceof \DateTime) {
+        if ($value === null) {
+            $value = "";
+        } elseif ($value instanceof \DateTime) {
             $value = $value->format(self::DATETIME_FORMAT);
         }
         return $value;
