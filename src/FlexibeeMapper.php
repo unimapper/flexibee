@@ -259,30 +259,33 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         $resource = $this->getResource($query->entityReflection);
 
-        $data = $this->connection->put(
+        $values =  $this->unmapEntity($query->entity);
+        if (empty($values)) {
+            throw new MapperException("Nothing to insert");
+        }
+
+        $result = $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
             array(
-                "@update" => "ok",
-                $resource => $this->unmapEntity($query->entity)
+                "@update" => "fail",
+                $resource => $values
             )
         );
 
-        if ($query->returnPrimaryValue) {
-            if (isset($data->results)) {
-                foreach ($data->results as $result) {
-                    if (isset($result->ref)
-                        && strpos($result->ref, $resource) !== false)
-                    {
-                        if (isset($result->code)) {
-                            return "code:" . $result->code;
-                        } elseif (isset($result->id)) {
-                            return $result->id;
-                        }
+        if (isset($result->results)) {
+            foreach ($result->results as $result) {
+                if (isset($result->ref)
+                    && strpos($result->ref, $resource) !== false
+                ) {
+                    if (isset($result->code)) {
+                        return "code:" . $result->code;
+                    } elseif (isset($result->id)) {
+                        return $result->id;
                     }
                 }
             }
-            throw new MapperException("Can not retrieve inserted primary value!");
         }
+        throw new MapperException("Can not retrieve inserted primary value!");
     }
 
     protected function convertConditions(array $conditions)
@@ -404,7 +407,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 $this->translateConditions($query->entityReflection, $query->conditions)
             )
         );
-
+        $xmlResource->addAttribute("create", "fail");
 
         foreach ($values as $name => $value) {
             if (!is_array($value)) {    // @todo skip arrays temporary
@@ -423,7 +426,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
             }
         }
 
-        $result = $this->connection->put(
+        $this->connection->put(
             rawurlencode($resource) . ".xml",
             $xml->asXML(),
             "application/xml"
