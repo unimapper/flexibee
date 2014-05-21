@@ -15,7 +15,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
     const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
 
-    /** @var \DibiConnection $connection Dibi connection */
+    /** @var \DibiConnection $connection */
     protected $connection;
 
     public function __construct($name, FlexibeeConnection $connection)
@@ -36,24 +36,16 @@ class FlexibeeMapper extends \UniMapper\Mapper
     }
 
     /**
-     * Delete
+     * Delete record by some conditions
      *
-     * @param \UniMapper\Query\Delete $query Query
-     *
-     * @return mixed
+     * @param string $resource
+     * @param array  $conditions
      */
-    public function delete(\UniMapper\Query\Delete $query)
+    public function delete($resource, array $conditions)
     {
-        $resource = $this->getResource($query->entityReflection);
-
         $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
         $xmlResource = $xml->addChild($resource);
-        $xmlResource->addAttribute(
-            "filter",
-            $this->convertConditions(
-                $this->unmapConditions($query->entityReflection, $query->conditions)
-            )
-        );
+        $xmlResource->addAttribute("filter", $this->convertConditions($conditions));
         $xmlResource->addAttribute("action", "delete");
 
         $this->connection->put(
@@ -61,8 +53,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
             $xml->asXML(),
             "application/xml"
         );
-
-        return true;
     }
 
     /**
