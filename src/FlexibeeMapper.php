@@ -51,7 +51,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $xmlResource->addAttribute(
             "filter",
             $this->convertConditions(
-                $this->translateConditions($query->entityReflection, $query->conditions)
+                $this->unmapConditions($query->entityReflection, $query->conditions)
             )
         );
         $xmlResource->addAttribute("action", "delete");
@@ -158,7 +158,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Apply conditions
         if (count($query->conditions > 0)) {
-            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->translateConditions($query->entityReflection, $query->conditions)) . ")");
+            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->unmapConditions($query->entityReflection, $query->conditions)) . ")");
         }
 
         // Set response type
@@ -241,7 +241,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Apply conditions
         if (count($query->conditions > 0)) {
-            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->translateConditions($query->entityReflection, $query->conditions)) . ")");
+            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->unmapConditions($query->entityReflection, $query->conditions)) . ")");
         }
 
         $result = $this->connection->get($url . ".json?detail=id&add-row-count=true");
@@ -251,19 +251,13 @@ class FlexibeeMapper extends \UniMapper\Mapper
     /**
      * Insert
      *
-     * @param \UniMapper\Query\Insert $query Query
+     * @param string $resource
+     * @param array  $values
      *
-     * @return mixed|null
+     * @return mixed Primary value
      */
-    public function insert(\UniMapper\Query\Insert $query)
+    public function insert($resource, array $values)
     {
-        $resource = $this->getResource($query->entityReflection);
-
-        $values =  $this->unmapEntity($query->entity);
-        if (empty($values)) {
-            throw new MapperException("Nothing to insert");
-        }
-
         $result = $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
             array(
@@ -285,7 +279,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 }
             }
         }
-        throw new MapperException("Can not retrieve inserted primary value!");
     }
 
     protected function convertConditions(array $conditions)
@@ -384,29 +377,17 @@ class FlexibeeMapper extends \UniMapper\Mapper
     }
 
     /**
-     * Update
+     * Update data by set of conditions
      *
-     * @param \UniMapper\Query\Update $query Query
-     *
-     * @return boolean
+     * @param string $resource
+     * @param array  $values
+     * @param array  $conditions
      */
-    public function update(\UniMapper\Query\Update $query)
+    public function update($resource, array $values, array $conditions)
     {
-        $resource = $this->getResource($query->entityReflection);
-
-        $values = $this->unmapEntity($query->entity);
-        if (empty($values)) {
-            return false;
-        }
-
         $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
         $xmlResource = $xml->addChild($resource);
-        $xmlResource->addAttribute(
-            "filter",
-            $this->convertConditions(
-                $this->translateConditions($query->entityReflection, $query->conditions)
-            )
-        );
+        $xmlResource->addAttribute("filter", $this->convertConditions($conditions));
         $xmlResource->addAttribute("create", "fail");
 
         foreach ($values as $name => $value) {
@@ -431,8 +412,6 @@ class FlexibeeMapper extends \UniMapper\Mapper
             $xml->asXML(),
             "application/xml"
         );
-
-        return true;
     }
 
     protected function getSelection(Reflection\Entity $entityReflection, array $selection = array())
