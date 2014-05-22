@@ -3,6 +3,7 @@
 namespace UniMapper\Mapper;
 
 use UniMapper\Reflection,
+    UniMapper\Query,
     UniMapper\Connection\FlexibeeConnection,
     UniMapper\Exceptions\MapperException;
 
@@ -16,7 +17,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
     const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
 
     /** @var \DibiConnection $connection */
-    protected $connection;
+    private $connection;
 
     public function __construct($name, FlexibeeConnection $connection)
     {
@@ -65,7 +66,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @throws \UniMapper\Exceptions\MapperException
      */
-    protected function setCodeId($data, $resourceName)
+    private function setCodeId($data, $resourceName)
     {
         if (!isset($data->{$resourceName})) {
             throw new MapperException("Unknown response, 'code:' prefix missing?!");
@@ -83,90 +84,58 @@ class FlexibeeMapper extends \UniMapper\Mapper
     }
 
     /**
-     * Find single record
+     * Find single record identified by primary value
      *
-     * @param \UniMapper\Query\FindOne $query Query
+     * @param string $resource
+     * @param mixed  $primaryName
+     * @param mixed  $primaryValue
      *
-     * @return \UniMapper\Entity|false
-     *
-     * @throws \UniMapper\Exceptions\MapperException
+     * @return mixed
      */
-    public function findOne(\UniMapper\Query\FindOne $query)
+    public function findOne($resource, $primaryName, $primaryValue)
     {
-        $resource = $this->getResource($query->entityReflection);
+        $result = $this->connection->get(
+            rawurlencode($resource) . "/" . rawurlencode($primaryValue) . ".json?code-as-id=true"
+        );
 
-        // Create URL
-        $url = rawurlencode($resource)
-            . "/" . rawurlencode($query->primaryValue)
-            . ".json";
-
-        // Add custom fields from entity property definitions
-        $parameters = array();
-
-        // Add custom fields from entity properties definitions
-        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->getSelection($query->entityReflection)));
-
-        // Try to get IDs as 'code:...'
-        $parameters[] = "code-as-id=true";
-
-        // Get data
-        $data = $this->connection->get($url . "?" . implode("&", $parameters));
-
-        // Check if request failed
-        if (isset($data->success)
-            && $data->success === "false") {
-            throw new MapperException($data->message);
-        }
-
-        if (!isset($data->{$resource}[0])) {
+        if (!isset($result->{$resource}[0])) {
             return false;
         }
-
-        $entityClass = $query->entityReflection->getClassName();
-
-        return $this->mapEntity(
-            $entityClass,
-            $this->setCodeId($data, $resource)->{$resource}[0]
-        );
+        return $this->setCodeId($result, $resource)->{$resource}[0];
     }
 
     /**
-     * FindAll
+     * Find records
      *
-     * @param \UniMapper\Query\FindAll $query Query
+     * @param string  $resource
+     * @param array   $selection
+     * @param array   $conditions
+     * @param array   $orderBy
+     * @param integer $limit
+     * @param integer $offset
      *
-     * @return \UniMapper\EntityCollection|false
-     *
-     * @throws \UniMapper\Exceptions\MapperException
+     * @return array|false
      */
-    public function findAll(\UniMapper\Query\FindAll $query)
+    public function findAll($resource, array $selection, array $conditions, array $orderBy, $limit = 0, $offset = 0)
     {
-        $resource = $this->getResource($query->entityReflection);
-
         // Get URL
         $url = rawurlencode($resource);
 
         // Apply conditions
-        if (count($query->conditions > 0)) {
-            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->unmapConditions($query->entityReflection, $query->conditions)) . ")");
+        if (count($conditions > 0)) {
+            $url .= "/" . rawurlencode("(" . $this->convertConditions($conditions) . ")");
         }
 
         // Set response type
         $url .= ".json";
 
         // Define additional parameters
-        $parameters = array();
-
-        // Add order
-        if (count($query->orderBy) > 0) {
-            $parameters = $this->convertOrder($query->orderBy, $query);
-        }
-
-        $parameters[] = "start=" . (int) $query->offset;
-        $parameters[] = "limit=" . (int) $query->limit;
+        $parameters = $orderBy;
+        $parameters[] = "start=" . $offset;
+        $parameters[] = "limit=" . $limit;
 
         // Add custom fields from entity properties definitions
-        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->getSelection($query->entityReflection)));
+        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $selection));
 
         // Try to get IDs as 'code:...'
         $parameters[] = "code-as-id=true";
@@ -174,68 +143,61 @@ class FlexibeeMapper extends \UniMapper\Mapper
         // Request data
         $data = $this->connection->get($url . "?" . implode("&", $parameters));
 
-        // Check if request failed
-        if (isset($data->success)
-            && $data->success === "false") {
-            throw new MapperException($data->message);
-        }
-
         if (count($data->{$resource}) === 0) {
             return false;
         }
 
         // Set ID and return data
-        return $this->mapCollection(
-            $query->entityReflection->getClassName(),
-            $this->setCodeId($data, $resource)->{$resource}
-        );
+        return $this->setCodeId($data, $resource)->{$resource};
     }
 
     /**
      * Custom query
      *
-     * @param \UniMapper\Query\Custom $query Query
+     * @param string $resource
+     * @param string $query
+     * @param string $method
+     * @param string $contentType
+     * @param mixed  $data
      *
      * @return mixed
+     *
+     * @throws \UniMapper\Exceptions\MapperException
      */
-    public function custom(\UniMapper\Query\Custom $query)
+    public function custom($resource, $query, $method, $contentType, $data)
     {
-        $url = rawurlencode($this->getResource($query->entityReflection));
-        if ($query->query) {
-            $url .= $query->query;
-        } else {
-            $url .= ".json";
+        $url = rawurlencode($resource);
+        if (empty($query)) {
+            $query .= ".json";
         }
+        $url .= $query;
 
-        if ($query->contentType) {
-            $contentType = $query->contentType;
-        } else {
+        if (empty($contentType)) {
             $contentType = "application/json";
         }
 
-        if ($query->method === \UniMapper\Query\Custom::METHOD_GET) {
+        if ($method === Query\Custom::METHOD_GET) {
             return $this->connection->get($url);
-        } elseif ($query->method === \UniMapper\Query\Custom::METHOD_PUT || $query->method === \UniMapper\Query\Custom::METHOD_POST) {
-            return $this->connection->put($url, $query->data, $contentType);
-        } elseif ($query->method === \UniMapper\Query\Custom::METHOD_DELETE) {
+        } elseif ($method === Query\Custom::METHOD_PUT || $method === Query\Custom::METHOD_POST) {
+            return $this->connection->put($url, $data, $contentType);
+        } elseif ($method === Query\Custom::METHOD_DELETE) {
             return $this->connection->delete($url);
         }
 
-        throw new MapperException("Not implemented!");
+        throw new MapperException("Undefined custom method '" . $method . "' used!");
     }
 
-    public function count(\UniMapper\Query\Count $query)
+    public function count($resource, array $conditions)
     {
         // Get URL
-        $url = rawurlencode($this->getResource($query->entityReflection));
+        $url = rawurlencode($resource);
 
         // Apply conditions
-        if (count($query->conditions > 0)) {
-            $url .= "/" . rawurlencode("(" . $this->convertConditions($this->unmapConditions($query->entityReflection, $query->conditions)) . ")");
+        if (count($conditions > 0)) {
+            $url .= "/" . rawurlencode("(" . $this->convertConditions($conditions) . ")");
         }
 
-        $result = $this->connection->get($url . ".json?detail=id&add-row-count=true");
-        return $result->{"@rowCount"};
+        return $this->connection->get($url . ".json?detail=id&add-row-count=true")->{"@rowCount"};
     }
 
     /**
@@ -336,34 +298,19 @@ class FlexibeeMapper extends \UniMapper\Mapper
         return $result;
     }
 
-    /**
-     * Convert order to URL format
-     *
-     * @param array            $orderBy
-     * @param \UniMapper\Query $query
-     *
-     * @return array
-     *
-     * @throws \UniMapper\Exceptions\MapperException
-     */
-    protected function convertOrder(array $orderBy, \UniMapper\Query $query)
+    public function unmapOrderBy(Reflection\Entity $entityReflection, array $items)
     {
-        $result = array();
-        foreach ($orderBy as $item) {
+        $unmapped = [];
+        foreach (parent::unmapOrderBy($entityReflection, $items) as $name => $direction) {
 
-            // Set direction
-            $direction = "D";
-            if ($item[1] === "asc") {
+            if ($direction === "asc") {
                 $direction = "A";
+            } else {
+                $direction = "D";
             }
-
-            // Map property name to defined mapping definition
-            $properties = $query->entityReflection->getProperties();
-            $propertyName = $properties[$item[0]]->getMappedName();
-
-            $result[] = "order=" . rawurlencode($propertyName  . "@" . $direction);
+            $unmapped[] = "order=" . rawurlencode($name  . "@" . $direction);
         }
-        return $result;
+        return $unmapped;
     }
 
     /**
@@ -404,10 +351,10 @@ class FlexibeeMapper extends \UniMapper\Mapper
         );
     }
 
-    protected function getSelection(Reflection\Entity $entityReflection, array $selection = array())
+    public function unmapSelection(Reflection\Entity $entityReflection, array $selection)
     {
         // Escape properties with @ char (polozky@removeAll), @showAs ...
-        $selection = parent::getSelection($entityReflection, $selection);
+        $selection = parent::unmapSelection($entityReflection, $selection);
         foreach ($selection as $index => $item) {
 
             if ($this->endsWith($item, "@removeAll")) {

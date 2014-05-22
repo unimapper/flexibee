@@ -92,7 +92,7 @@ class FlexibeeConnection
      *
      * @param string $url URL
      *
-     * @return \stdClass | \SimpleXMLElement Output format depends on selected
+     * @return \stdClass|\SimpleXMLElement Output format depends on selected
      *                                       format in URL.
      */
     public function get($url)
@@ -115,9 +115,16 @@ class FlexibeeConnection
         }
 
         if (isset($response->body->winstrom)) {
-            return $response->body->winstrom;
+            $result = $response->body->winstrom;
+        } else {
+            $result = $response->body;
         }
-        return $response->body;
+
+        // Check if request failed
+        if (isset($result->success) && $result->success === "false") {
+            throw new FlexibeeException($result->message, $request);
+        }
+        return $result;
     }
 
     /**
