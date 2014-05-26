@@ -131,8 +131,10 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Define additional parameters
         $parameters = $orderBy;
-        $parameters[] = "start=" . $offset;
-        $parameters[] = "limit=" . $limit;
+
+        // Offset and limit must be defined even if null given
+        $parameters[] = "start=" . (int) $offset;
+        $parameters[] = "limit=" . (int) $limit;
 
         // Add custom fields from entity properties definitions
         $parameters[] = "detail=custom:" . rawurlencode(implode(",", $selection));
@@ -344,11 +346,15 @@ class FlexibeeMapper extends \UniMapper\Mapper
             }
         }
 
-        $this->connection->put(
-            rawurlencode($resource) . ".xml",
-            $xml->asXML(),
-            "application/xml"
-        );
+        try {
+            $this->connection->put(
+                rawurlencode($resource) . ".xml",
+                $xml->asXML(),
+                "application/xml"
+            );
+        } catch (UniMapper\Exceptions\FlexibeeException $exception) {
+
+        }
     }
 
     public function unmapSelection(Reflection\Entity $entityReflection, array $selection)
