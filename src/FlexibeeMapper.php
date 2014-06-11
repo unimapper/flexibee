@@ -122,7 +122,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $url = rawurlencode($resource);
 
         // Apply conditions
-        if (count($conditions > 0)) {
+        if (count($conditions) > 0) {
             $url .= "/" . rawurlencode("(" . $this->convertConditions($conditions) . ")");
         }
 
@@ -130,14 +130,14 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $url .= ".json";
 
         // Define additional parameters
-        $parameters = $orderBy;
+        $parameters = $this->convertOrderBy($orderBy);
 
         // Offset and limit must be defined even if null given
         $parameters[] = "start=" . (int) $offset;
         $parameters[] = "limit=" . (int) $limit;
 
         // Add custom fields from entity properties definitions
-        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $selection));
+        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->escapeProperties($selection)));
 
         // Try to get IDs as 'code:...'
         $parameters[] = "code-as-id=true";
@@ -300,19 +300,19 @@ class FlexibeeMapper extends \UniMapper\Mapper
         return $result;
     }
 
-    public function unmapOrderBy(Reflection\Entity $entityReflection, array $items)
+    private function convertOrderBy($items)
     {
-        $unmapped = [];
-        foreach (parent::unmapOrderBy($entityReflection, $items) as $name => $direction) {
+        $result = [];
+        foreach ($items as $name => $direction) {
 
             if ($direction === "asc") {
                 $direction = "A";
             } else {
                 $direction = "D";
             }
-            $unmapped[] = "order=" . rawurlencode($name  . "@" . $direction);
+            $result[] = "order=" . rawurlencode($name  . "@" . $direction);
         }
-        return $unmapped;
+        return $result;
     }
 
     /**
@@ -357,19 +357,24 @@ class FlexibeeMapper extends \UniMapper\Mapper
         }
     }
 
-    public function unmapSelection(Reflection\Entity $entityReflection, array $selection)
+    /**
+     * Escape properties with @ char (polozky@removeAll), @showAs ...
+     *
+     * @param array $properties
+     *
+     * @return array
+     */
+    private function escapeProperties(array $properties)
     {
-        // Escape properties with @ char (polozky@removeAll), @showAs ...
-        $selection = parent::unmapSelection($entityReflection, $selection);
-        foreach ($selection as $index => $item) {
+        foreach ($properties as $index => $item) {
 
             if ($this->endsWith($item, "@removeAll")) {
-                $selection[$index] = substr($item, 0, -10);
+                $properties[$index] = substr($item, 0, -10);
             } elseif ($this->endsWith($item, "@showAs") || $this->endsWith($item, "@action")) {
-                $selection[$index] = substr($item, 0, -7);
+                $properties[$index] = substr($item, 0, -7);
             }
         }
-        return $selection;
+        return $properties;
     }
 
     private function endsWith($haystack, $needle)
