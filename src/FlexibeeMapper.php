@@ -330,8 +330,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $xmlResource->addAttribute("create", "fail");
 
         foreach ($values as $name => $value) {
-            if (!is_array($value)) {    // @todo skip arrays temporary
-
+            if (!is_array($value)) {
                 // @todo Experimental support for @attribute (@removeAll)
                 $specialAttributes = array();
                 if (strpos($name, "@") !== false) {
@@ -354,6 +353,42 @@ class FlexibeeMapper extends \UniMapper\Mapper
             );
         } catch (UniMapper\Exceptions\FlexibeeException $exception) {
 
+        }
+    }
+
+    /**
+     * Update single record
+     *
+     * @param string $resource
+     * @param string $primaryName
+     * @param mixed  $primaryValue
+     * @param array  $values
+     *
+     * @return mixed Primary value
+     */
+    public function updateOne($resource, $primaryName, $primaryValue, array $values)
+    {
+        $values[$primaryName] = $primaryValue;
+        $result = $this->connection->put(
+            rawurlencode($resource) . ".json?code-in-response=true",
+            array(
+                "@create" => "fail",
+                $resource => $values
+            )
+        );
+
+        if (isset($result->results)) {
+            foreach ($result->results as $result) {
+                if (isset($result->ref)
+                    && strpos($result->ref, $resource) !== false
+                ) {
+                    if (isset($result->code)) {
+                        return "code:" . $result->code;
+                    } elseif (isset($result->id)) {
+                        return $result->id;
+                    }
+                }
+            }
         }
     }
 
