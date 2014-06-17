@@ -275,7 +275,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
                     $value = "'" . $value . "'";
                 }
 
-                // Operator
+                // Compare
                 if ($operator === "COMPARE") {
                     if ($rightPercent && !$leftPercent) {
                         $operator = "BEGINS";
@@ -284,6 +284,11 @@ class FlexibeeMapper extends \UniMapper\Mapper
                     } else {
                         $operator = "LIKE SIMILAR";
                     }
+                }
+
+                // IS, IS NOT
+                if (($operator === "IS NOT" || $operator === "IS") && $value === "''") {
+                    $value = "empty";
                 }
 
                 $formatedCondition = $propertyName . " " . $operator . " " . $value;
