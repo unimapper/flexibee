@@ -325,7 +325,10 @@ class FlexibeeMapper extends \UniMapper\Mapper
     {
         $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
-            [$resource => ["@filter" => $this->convertConditions($conditions)] + $values]
+            [
+                "@create" => "fail",
+                $resource => ["@filter" => $this->convertConditions($conditions)] + $values
+            ]
         );
     }
 
@@ -336,33 +339,14 @@ class FlexibeeMapper extends \UniMapper\Mapper
      * @param string $primaryName
      * @param mixed  $primaryValue
      * @param array  $values
-     *
-     * @return mixed Primary value
      */
     public function updateOne($resource, $primaryName, $primaryValue, array $values)
     {
         $values[$primaryName] = $primaryValue;
-        $result = $this->connection->put(
+        $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
-            array(
-                "@create" => "fail",
-                $resource => $values
-            )
+            ["@create" => "fail", $resource => $values]
         );
-
-        if (isset($result->results)) {
-            foreach ($result->results as $result) {
-                if (isset($result->ref)
-                    && strpos($result->ref, $resource) !== false
-                ) {
-                    if (isset($result->code)) {
-                        return "code:" . $result->code;
-                    } elseif (isset($result->id)) {
-                        return $result->id;
-                    }
-                }
-            }
-        }
     }
 
     /**
