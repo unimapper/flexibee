@@ -44,15 +44,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function delete($resource, array $conditions)
     {
-        $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
-        $xmlResource = $xml->addChild($resource);
-        $xmlResource->addAttribute("filter", $this->convertConditions($conditions));
-        $xmlResource->addAttribute("action", "delete");
-
-        $this->connection->put(
-            rawurlencode($resource) . ".xml",
-            $xml->asXML(),
-            "application/xml"
+        $this->connection->delete(
+            rawurlencode($resource) . ".json?code-in-response=true",
+            [$resource => ["@filter" => $this->convertConditions($conditions), "@action" => "delete"]]
         );
     }
 
@@ -329,36 +323,10 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function update($resource, array $values, array $conditions)
     {
-        $xml = new \SimpleXMLElement('<winstrom version="1.0" />');
-        $xmlResource = $xml->addChild($resource);
-        $xmlResource->addAttribute("filter", $this->convertConditions($conditions));
-        $xmlResource->addAttribute("create", "fail");
-
-        foreach ($values as $name => $value) {
-            if (!is_array($value)) {
-                // @todo Experimental support for @attribute (@removeAll)
-                $specialAttributes = array();
-                if (strpos($name, "@") !== false) {
-                    $specialAttributes = explode("@", $name);
-                    $name = array_shift($specialAttributes);
-                }
-
-                $itemResource = $xmlResource->addChild($name, $value);
-                foreach ($specialAttributes as $attribute) {
-                    $itemResource->addAttribute($attribute, $value);
-                }
-            }
-        }
-
-        try {
-            $this->connection->put(
-                rawurlencode($resource) . ".xml",
-                $xml->asXML(),
-                "application/xml"
-            );
-        } catch (UniMapper\Exceptions\FlexibeeException $exception) {
-
-        }
+        $this->connection->put(
+            rawurlencode($resource) . ".json?code-in-response=true",
+            [$resource => ["@filter" => $this->convertConditions($conditions)] + $values]
+        );
     }
 
     /**
