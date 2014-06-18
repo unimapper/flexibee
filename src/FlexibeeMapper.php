@@ -44,7 +44,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function delete($resource, array $conditions)
     {
-        $this->connection->delete(
+        $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
             [$resource => ["@filter" => $this->convertConditions($conditions), "@action" => "delete"]]
         );
