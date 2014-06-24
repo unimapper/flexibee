@@ -26,9 +26,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $this->connection = $connection;
     }
 
-    protected function unmapValue($entity, $property, $value)
+    protected function unmapValue($value, $entity = null, $property = null )
     {
-        $value = parent::unmapValue($entity, $property, $value);
+        $value = parent::unmapValue($value, $entity, $property );
         if ($value === null) {
             $value = "";
         } elseif ($value instanceof \DateTime) {
