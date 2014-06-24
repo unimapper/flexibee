@@ -2,7 +2,8 @@
 
 namespace UniMapper\Mapper;
 
-use UniMapper\Reflection,
+use UniMapper\Reflection\Entity\Property\Association\HasMany,
+    UniMapper\Reflection\Entity\Property\Association\BelongsToMany,
     UniMapper\Query,
     UniMapper\Connection\FlexibeeConnection,
     UniMapper\Exceptions\MapperException;
@@ -25,9 +26,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $this->connection = $connection;
     }
 
-    protected function unmapValue($value)
+    protected function unmapValue($value, $entity = null, $property = null )
     {
-        $value = parent::unmapValue($value);
+        $value = parent::unmapValue($value, $entity, $property );
         if ($value === null) {
             $value = "";
         } elseif ($value instanceof \DateTime) {
@@ -83,18 +84,74 @@ class FlexibeeMapper extends \UniMapper\Mapper
      * @param string $resource
      * @param mixed  $primaryName
      * @param mixed  $primaryValue
+     * @param array  $associations
      *
      * @return mixed
      */
-    public function findOne($resource, $primaryName, $primaryValue)
+    public function findOne($resource, $primaryName, $primaryValue, array $associations = [])
     {
-        $result = $this->connection->get(
-            rawurlencode($resource) . "/" . rawurlencode($primaryValue) . ".json?code-as-id=true"
-        );
+        $url = rawurlencode($resource) . "/" . rawurlencode($primaryValue) . ".json";
 
+        $parameters = [];
+        $parameters[] = "code-as-id=true";
+
+        // Associations
+        $associated = [];
+        $includes = [];
+        foreach ($associations as $propertyName => $association) {
+
+            if ($association instanceof HasMany) {
+                // M:N
+
+                $relations = $this->connection->get(
+                    rawurlencode($resource) . "/" . rawurlencode($primaryValue) . "/vazby.json?code-as-id=true&detail=full&includes=/winstrom/vazba/a,/winstrom/vazba/b"
+                );
+
+                if (isset($relations->vazba)) {
+
+                    foreach ($relations->vazba as $index => $relation) {
+
+                        if ($relation->typVazbyK === $association->getJoinResource()) {
+                            foreach ($relation->{$association->getReferenceKey()} as $index => $item) {
+                                $associated[$propertyName] = new \stdClass;
+                                $associated[$propertyName]->{$index} = $item;
+                            }
+                        }
+                    }
+                }
+            } elseif ($association instanceof BelongsToMany) {
+                // 1:N
+
+                $includes[$association->getForeignKey()] = $propertyName;
+            } else {
+                throw new MapperException("Unsupported association " . get_class($association) . "!");
+            }
+        }
+
+        // Add includes
+        if ($includes) {
+            $includeItems = implode(",", array_keys($includes));
+            $parameters[] = "includes=" . str_replace(",", ",/" . $resource . "/", $includeItems) . "&detail=full";
+            $parameters[] = "relations=" . $includeItems; // Because of attachments
+        }
+
+        // Query on server
+        $result = $this->connection->get($url . "?" . implode("&", $parameters));
         if (!isset($result->{$resource}[0])) {
             return false;
         }
+
+        // Join associated results
+        foreach ($associated as $propertyName => $values) {
+            $result->{$resource}[0]->{$propertyName} = $values;
+        }
+
+        // Join includes results
+        foreach ($includes as $includeKey => $propertyName) {
+            $result->{$resource}[0]->{$propertyName} = $result->{$resource}[0]->{$includeKey};
+            unset($result->{$resource}[0]->{$includeKey});
+        }
+
         return $this->setCodeId($result, $resource)->{$resource}[0];
     }
 
@@ -107,10 +164,11 @@ class FlexibeeMapper extends \UniMapper\Mapper
      * @param array   $orderBy
      * @param integer $limit
      * @param integer $offset
+     * @param array   $associations
      *
      * @return array|false
      */
-    public function findAll($resource, array $selection, array $conditions, array $orderBy, $limit = 0, $offset = 0)
+    public function findAll($resource, array $selection = [], array $conditions = [], array $orderBy = [], $limit = 0, $offset = 0, array $associations = [])
     {
         // Get URL
         $url = rawurlencode($resource);
@@ -130,21 +188,69 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $parameters[] = "start=" . (int) $offset;
         $parameters[] = "limit=" . (int) $limit;
 
-        // Add custom fields from entity properties definitions
-        $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->escapeProperties($selection)));
-
         // Try to get IDs as 'code:...'
         $parameters[] = "code-as-id=true";
 
-        // Request data
-        $data = $this->connection->get($url . "?" . implode("&", $parameters));
+        // Associations
+        $includes = [];
+        $relations = [];
+        foreach ($associations as $propertyName => $association) {
 
-        if (count($data->{$resource}) === 0) {
+            if ($association instanceof HasMany) {
+                // M:N
+
+                if (!in_array("vazby", $relations)) {
+                    $relations[] = 'vazby';
+                }
+            } elseif ($association instanceof BelongsToMany) {
+                // 1:N
+
+                $includes[$association->getForeignKey()] = $propertyName;
+            } else {
+                throw new MapperException("Unsupported association " . get_class($association) . "!");
+            }
+        }
+
+        // Add includes
+        if ($includes) {
+
+            $includeItems = [];
+            foreach (array_keys($includes) as $index => $includeItem) {
+                $includeItems[$index] = "/" . $resource . "/" . $includeItem;
+            }
+            $parameters[] = "includes=" . implode(",", $includeItems);
+            $relations = array_merge($relations, array_keys($includes));
+        }
+
+        if ($relations) {
+            $parameters[] = "relations=" . implode(",", $relations);
+        }
+
+        // Add custom fields from entity properties definitions
+        if ($selection) {
+            $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->escapeProperties($selection)));
+        }
+
+        // Query on server
+        $result = $this->connection->get($url . "?" . implode("&", $parameters));
+        if (count($result->{$resource}) === 0) {
             return false;
         }
 
+        // Join includes results
+        if ($includes) {
+
+            foreach ($result->{$resource} as $index => $item) {
+
+                foreach ($includes as $includeKey => $propertyName) {
+                    $result->{$resource}[$index]->{$propertyName} = $item->{$includeKey};
+                    unset($result->{$resource}[$index]->{$includeKey});
+                }
+            }
+        }
+
         // Set ID and return data
-        return $this->setCodeId($data, $resource)->{$resource};
+        return $this->setCodeId($result, $resource)->{$resource};
     }
 
     /**
