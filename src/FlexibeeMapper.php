@@ -456,7 +456,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
     }
 
     /**
-     * Escape properties with @ char (polozky@removeAll), @showAs ...
+     * Escape properties with @ char (polozky@removeAll), @showAs, @ref ...
      *
      * @param array $properties
      *
@@ -470,6 +470,8 @@ class FlexibeeMapper extends \UniMapper\Mapper
                 $properties[$index] = substr($item, 0, -10);
             } elseif ($this->endsWith($item, "@showAs") || $this->endsWith($item, "@action")) {
                 $properties[$index] = substr($item, 0, -7);
+            } elseif ($this->endsWith($item, "@ref")) {
+                $properties[$index] = substr($item, 0, -4);
             }
         }
         return $properties;
