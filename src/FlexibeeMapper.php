@@ -6,7 +6,7 @@ use UniMapper\Reflection\Entity\Property\Association\HasMany,
     UniMapper\Reflection\Entity\Property\Association\BelongsToMany,
     UniMapper\Query,
     UniMapper\Connection\FlexibeeConnection,
-    UniMapper\Exceptions\MapperException;
+    UniMapper\Exception\MapperException;
 
 /**
  * Flexibee mapper can be generally used to communicate between repository and
@@ -59,7 +59,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @return mixed
      *
-     * @throws \UniMapper\Exceptions\MapperException
+     * @throws \UniMapper\Exception\MapperException
      */
     private function setCodeId($data, $resourceName)
     {
@@ -191,7 +191,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      * @param array   $associations
      * @param array   $additionalParameters
      *
-     * @throws \UniMapper\Exceptions\MapperException
+     * @throws \UniMapper\Exception\MapperException
      *
      * @return array|false
      */
@@ -290,7 +290,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @return mixed
      *
-     * @throws \UniMapper\Exceptions\MapperException
+     * @throws \UniMapper\Exception\MapperException
      */
     public function custom($resource, $query, $method, $contentType, $data)
     {
