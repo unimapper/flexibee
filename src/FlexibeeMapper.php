@@ -170,9 +170,33 @@ class FlexibeeMapper extends \UniMapper\Mapper
      */
     public function findAll($resource, array $selection = [], array $conditions = [], array $orderBy = [], $limit = 0, $offset = 0, array $associations = [])
     {
-        // Get URL
-        $url = rawurlencode($resource);
+        // Get results
+        $result = $this->findResult(rawurlencode($resource), $resource, $resource, $selection, $conditions, $orderBy, $limit, $offset, $associations);
 
+        // Set ID and return data
+        return $this->setCodeId($result, $resource)->{$resource};
+    }
+
+    /**
+     * Find results
+     *
+     * @param string  $url
+     * @param string  $resultTag
+     * @param string  $resource
+     * @param array   $selection
+     * @param array   $conditions
+     * @param array   $orderBy
+     * @param integer $limit
+     * @param integer $offset
+     * @param array   $associations
+     * @param array   $additionalParameters
+     *
+     * @throws \UniMapper\Exceptions\MapperException
+     *
+     * @return array|false
+     */
+    public function findResult($url, $resultTag, $resource, array $selection = [], array $conditions = [], array $orderBy = [], $limit = 0, $offset = 0, array $associations = [], array $additionalParameters = [])
+    {
         // Apply conditions
         if (count($conditions) > 0) {
             $url .= "/" . rawurlencode("(" . $this->convertConditions($conditions) . ")");
@@ -183,6 +207,9 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Define additional parameters
         $parameters = $this->convertOrderBy($orderBy);
+        if ($additionalParameters){
+            $parameters = array_merge($parameters, $additionalParameters);
+        }
 
         // Offset and limit must be defined even if null given
         $parameters[] = "start=" . (int) $offset;
@@ -233,24 +260,23 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
         // Query on server
         $result = $this->connection->get($url . "?" . implode("&", $parameters));
-        if (count($result->{$resource}) === 0) {
+        if (count($result->{$resultTag}) === 0) {
             return false;
         }
 
         // Join includes results
         if ($includes) {
 
-            foreach ($result->{$resource} as $index => $item) {
+            foreach ($result->{$resultTag} as $index => $item) {
 
                 foreach ($includes as $includeKey => $propertyName) {
-                    $result->{$resource}[$index]->{$propertyName} = $item->{$includeKey};
-                    unset($result->{$resource}[$index]->{$includeKey});
+                    $result->{$resultTag}[$index]->{$propertyName} = $item->{$includeKey};
+                    unset($result->{$resultTag}[$index]->{$includeKey});
                 }
             }
         }
 
-        // Set ID and return data
-        return $this->setCodeId($result, $resource)->{$resource};
+        return $result;
     }
 
     /**
