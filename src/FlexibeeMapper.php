@@ -174,7 +174,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
         $result = $this->findResult(rawurlencode($resource), $resource, $resource, $selection, $conditions, $orderBy, $limit, $offset, $associations);
 
         // Set ID and return data
-        return $this->setCodeId($result, $resource)->{$resource};
+        return $result !== false ? $this->setCodeId($result, $resource)->{$resource} : $result;
     }
 
     /**
