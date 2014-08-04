@@ -1,6 +1,6 @@
 <?php
 
-namespace UniMapper\Connection;
+namespace UniMapper\Flexibee;
 
 use Httpful\Request,
     UniMapper\Exceptions\FlexibeeException;
@@ -8,7 +8,7 @@ use Httpful\Request,
 /**
  * Flexibee connection via Httpful library.
  */
-class FlexibeeConnection
+class Connection
 {
 
     /** @var string */
