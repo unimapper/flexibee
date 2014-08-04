@@ -1,8 +1,8 @@
 <?php
 
-namespace UniMapper\Exceptions;
+namespace UniMapper\Flexibee;
 
-class FlexibeeException extends \Exception
+class Exception extends \Exception
 {
 
     /** @var \Httpful\Request $request Request */

@@ -1,18 +1,17 @@
 <?php
 
-namespace UniMapper\Mapper;
+namespace UniMapper\Flexibee;
 
 use UniMapper\Reflection\Entity\Property\Association\HasMany,
     UniMapper\Reflection\Entity\Property\Association\BelongsToMany,
     UniMapper\Query,
-    UniMapper\Connection\FlexibeeConnection,
-    UniMapper\Exception\MapperException;
+    UniMapper\Exception\AdapterException;
 
 /**
  * Flexibee mapper can be generally used to communicate between repository and
  * Flexibee REST API.
  */
-class FlexibeeMapper extends \UniMapper\Mapper
+class Adapter extends \UniMapper\Adapter
 {
 
     const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
@@ -20,21 +19,10 @@ class FlexibeeMapper extends \UniMapper\Mapper
     /** @var \DibiConnection $connection */
     private $connection;
 
-    public function __construct($name, FlexibeeConnection $connection)
+    public function __construct($name, Connection $connection)
     {
-        parent::__construct($name);
+        parent::__construct($name, new Mapping);
         $this->connection = $connection;
-    }
-
-    protected function unmapValue($value, $entity = null, $property = null )
-    {
-        $value = parent::unmapValue($value, $entity, $property );
-        if ($value === null) {
-            $value = "";
-        } elseif ($value instanceof \DateTime) {
-            $value = $value->format(self::DATETIME_FORMAT);
-        }
-        return $value;
     }
 
     /**
@@ -59,12 +47,12 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @return mixed
      *
-     * @throws \UniMapper\Exception\MapperException
+     * @throws \UniMapper\Exception\AdapterException
      */
     private function setCodeId($data, $resourceName)
     {
         if (!isset($data->{$resourceName})) {
-            throw new MapperException("Unknown response, 'code:' prefix missing?!");
+            throw new AdapterException("Unknown response, 'code:' prefix missing?!");
         }
 
         foreach ($data->{$resourceName} as $iterator => $row) {
@@ -124,7 +112,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
                 $includes[$association->getForeignKey()] = $propertyName;
             } else {
-                throw new MapperException("Unsupported association " . get_class($association) . "!");
+                throw new AdapterException("Unsupported association " . get_class($association) . "!");
             }
         }
 
@@ -191,7 +179,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      * @param array   $associations
      * @param array   $additionalParameters
      *
-     * @throws \UniMapper\Exception\MapperException
+     * @throws \UniMapper\Exception\AdapterException
      *
      * @return array|false
      */
@@ -234,7 +222,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
 
                 $includes[$association->getForeignKey()] = $propertyName;
             } else {
-                throw new MapperException("Unsupported association " . get_class($association) . "!");
+                throw new AdapterException("Unsupported association " . get_class($association) . "!");
             }
         }
 
@@ -290,7 +278,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
      *
      * @return mixed
      *
-     * @throws \UniMapper\Exception\MapperException
+     * @throws \UniMapper\Exception\AdapterException
      */
     public function custom($resource, $query, $method, $contentType, $data)
     {
@@ -312,7 +300,7 @@ class FlexibeeMapper extends \UniMapper\Mapper
             return $this->connection->delete($url);
         }
 
-        throw new MapperException("Undefined custom method '" . $method . "' used!");
+        throw new AdapterException("Undefined custom method '" . $method . "' used!");
     }
 
     public function count($resource, array $conditions)
