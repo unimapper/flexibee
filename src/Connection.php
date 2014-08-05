@@ -2,8 +2,7 @@
 
 namespace UniMapper\Flexibee;
 
-use Httpful\Request,
-    UniMapper\Exceptions\FlexibeeException;
+use Httpful\Request;
 
 /**
  * Flexibee connection via Httpful library.
@@ -78,7 +77,7 @@ class Connection
                 $message = "Error during DELETE from Flexibee" .
                     " (" . $url . ")";
             }
-            throw new FlexibeeException($message, $request);
+            throw new Exception($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -111,7 +110,7 @@ class Connection
                 $message = "Error during GET from Flexibee" .
                     " (" . $url . ")";
             }
-            throw new FlexibeeException($message, $request);
+            throw new Exception($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -122,7 +121,7 @@ class Connection
 
         // Check if request failed
         if (isset($result->success) && $result->success === "false") {
-            throw new FlexibeeException($result->message, $request);
+            throw new Exception($result->message, $request);
         }
         return $result;
     }
@@ -155,7 +154,7 @@ class Connection
                 $message = "Error during PUT to Flexibee";
             }
 
-            throw new FlexibeeException($message, $request);
+            throw new Exception($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -186,14 +185,14 @@ class Connection
             }
 
             if (isset($error)) {
-                throw new FlexibeeException("Flexibee error: {$error}");
+                throw new Exception("Flexibee error: {$error}");
             }
 
             if (isset($response->body->message)) {
-                throw new FlexibeeException("Flexibee error: " . $response->body->message, $request);
+                throw new Exception("Flexibee error: " . $response->body->message, $request);
             }
 
-            throw new FlexibeeException("An unknown flexibee error occurred", $request);
+            throw new Exception("An unknown flexibee error occurred", $request);
         }
 
         return $response->body;
