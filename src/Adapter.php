@@ -4,7 +4,6 @@ namespace UniMapper\Flexibee;
 
 use UniMapper\Reflection\Entity\Property\Association\HasMany,
     UniMapper\Reflection\Entity\Property\Association\BelongsToMany,
-    UniMapper\Query,
     UniMapper\Exception\AdapterException;
 
 /**
@@ -14,9 +13,7 @@ use UniMapper\Reflection\Entity\Property\Association\HasMany,
 class Adapter extends \UniMapper\Adapter
 {
 
-    const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
-
-    /** @var \DibiConnection $connection */
+    /** @var \UniMapper\Flexibee\Connection $connection */
     private $connection;
 
     public function __construct($name, Connection $connection)
@@ -25,17 +22,22 @@ class Adapter extends \UniMapper\Adapter
         $this->connection = $connection;
     }
 
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
     /**
      * Delete record by some conditions
      *
      * @param string $resource
-     * @param array  $conditions
+     * @param string $conditions
      */
-    public function delete($resource, array $conditions)
+    public function delete($resource, $conditions)
     {
         $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
-            [$resource => ["@filter" => $this->convertConditions($conditions), "@action" => "delete"]]
+            [$resource => ["@filter" => $conditions, "@action" => "delete"]]
         );
     }
 
@@ -49,7 +51,7 @@ class Adapter extends \UniMapper\Adapter
      *
      * @throws \UniMapper\Exception\AdapterException
      */
-    private function setCodeId($data, $resourceName)
+    public function setCodeId($data, $resourceName)
     {
         if (!isset($data->{$resourceName})) {
             throw new AdapterException("Unknown response, 'code:' prefix missing?!");
@@ -147,57 +149,31 @@ class Adapter extends \UniMapper\Adapter
      * Find records
      *
      * @param string  $resource
-     * @param array   $selection
-     * @param array   $conditions
+     * @param string  $selection
+     * @param string  $conditions
      * @param array   $orderBy
      * @param integer $limit
      * @param integer $offset
      * @param array   $associations
-     *
-     * @return array|false
-     */
-    public function findAll($resource, array $selection = [], array $conditions = [], array $orderBy = [], $limit = 0, $offset = 0, array $associations = [])
-    {
-        // Get results
-        $result = $this->findResult(rawurlencode($resource), $resource, $resource, $selection, $conditions, $orderBy, $limit, $offset, $associations);
-
-        // Set ID and return data
-        return $result !== false ? $this->setCodeId($result, $resource)->{$resource} : $result;
-    }
-
-    /**
-     * Find results
-     *
-     * @param string  $url
-     * @param string  $resultTag
-     * @param string  $resource
-     * @param array   $selection
-     * @param array   $conditions
-     * @param array   $orderBy
-     * @param integer $limit
-     * @param integer $offset
-     * @param array   $associations
-     * @param array   $additionalParameters
      *
      * @throws \UniMapper\Exception\AdapterException
      *
      * @return array|false
      */
-    public function findResult($url, $resultTag, $resource, array $selection = [], array $conditions = [], array $orderBy = [], $limit = 0, $offset = 0, array $associations = [], array $additionalParameters = [])
+    public function findAll($resource, $selection = null, $conditions = null, $orderBy = null, $limit = 0, $offset = 0, array $associations = [])
     {
+        $url = rawurlencode($resource);
+
         // Apply conditions
-        if (count($conditions) > 0) {
-            $url .= "/" . rawurlencode("(" . $this->convertConditions($conditions) . ")");
+        if ($conditions) {
+            $url .= "/" . rawurlencode("(" . $conditions . ")");
         }
 
         // Set response type
         $url .= ".json";
 
         // Define additional parameters
-        $parameters = $this->convertOrderBy($orderBy);
-        if ($additionalParameters){
-            $parameters = array_merge($parameters, $additionalParameters);
-        }
+        $parameters = $orderBy;
 
         // Offset and limit must be defined even if null given
         $parameters[] = "start=" . (int) $offset;
@@ -231,7 +207,7 @@ class Adapter extends \UniMapper\Adapter
 
             $includeItems = [];
             foreach (array_keys($includes) as $index => $includeItem) {
-                $includeItems[$index] = "/" . $resource . "/" . $includeItem;
+                $includeItems[$index] = "/" . rawurlencode($resource) . "/" . $includeItem;
             }
             $parameters[] = "includes=" . implode(",", $includeItems);
             $relations = array_merge($relations, array_keys($includes));
@@ -243,74 +219,38 @@ class Adapter extends \UniMapper\Adapter
 
         // Add custom fields from entity properties definitions
         if ($selection) {
-            $parameters[] = "detail=custom:" . rawurlencode(implode(",", $this->escapeProperties($selection)));
+            $parameters[] = "detail=custom:" . rawurlencode($selection);
         }
 
         // Query on server
         $result = $this->connection->get($url . "?" . implode("&", $parameters));
-        if (count($result->{$resultTag}) === 0) {
+        if (count($result->{$resource}) === 0) {
             return false;
         }
 
         // Join includes results
         if ($includes) {
 
-            foreach ($result->{$resultTag} as $index => $item) {
+            foreach ($result->{$resource} as $index => $item) {
 
                 foreach ($includes as $includeKey => $propertyName) {
-                    $result->{$resultTag}[$index]->{$propertyName} = $item->{$includeKey};
-                    unset($result->{$resultTag}[$index]->{$includeKey});
+                    $result->{$resource}[$index]->{$propertyName} = $item->{$includeKey};
+                    unset($result->{$resource}[$index]->{$includeKey});
                 }
             }
         }
 
-        return $result;
+        return $this->setCodeId($result, $resource)->{$resource};
     }
 
-    /**
-     * Custom query
-     *
-     * @param string $resource
-     * @param string $query
-     * @param string $method
-     * @param string $contentType
-     * @param mixed  $data
-     *
-     * @return mixed
-     *
-     * @throws \UniMapper\Exception\AdapterException
-     */
-    public function custom($resource, $query, $method, $contentType, $data)
-    {
-        $url = rawurlencode($resource);
-        if (empty($query)) {
-            $query .= ".json";
-        }
-        $url .= $query;
-
-        if (empty($contentType)) {
-            $contentType = "application/json";
-        }
-
-        if ($method === Query\Custom::METHOD_GET) {
-            return $this->connection->get($url);
-        } elseif ($method === Query\Custom::METHOD_PUT || $method === Query\Custom::METHOD_POST) {
-            return $this->connection->put($url, $data, $contentType);
-        } elseif ($method === Query\Custom::METHOD_DELETE) {
-            return $this->connection->delete($url);
-        }
-
-        throw new AdapterException("Undefined custom method '" . $method . "' used!");
-    }
-
-    public function count($resource, array $conditions)
+    public function count($resource, $conditions)
     {
         // Get URL
         $url = rawurlencode($resource);
 
         // Apply conditions
-        if (count($conditions > 0)) {
-            $url .= "/" . rawurlencode("(" . $this->convertConditions($conditions) . ")");
+        if ($conditions) {
+            $url .= "/" . rawurlencode("(" . $conditions . ")");
         }
 
         return $this->connection->get($url . ".json?detail=id&add-row-count=true")->{"@rowCount"};
@@ -349,105 +289,20 @@ class Adapter extends \UniMapper\Adapter
         }
     }
 
-    protected function convertConditions(array $conditions)
-    {
-        $result = null;
-
-        foreach ($conditions as $condition) {
-
-            if (is_array($condition[0])) {
-                // Nested conditions
-
-                list($nestedConditions, $joiner) = $condition;
-                $converted = "(" . $this->convertConditions($nestedConditions) . ")";
-                // Add joiner if not first condition
-                if ($result !== null) {
-                    $result .= " " . $joiner . " ";
-                }
-                $result .= $converted;
-
-            } else {
-                // Simple condition
-
-                list($propertyName, $operator, $value, $joiner) = $condition;
-
-                // Value
-                if (is_array($value)) {
-                    $value = "('" . implode("','", $value) . "')";
-                } elseif ($value instanceof \DateTime) {
-                    $value = "'" . $value->format(self::DATETIME_FORMAT) . "'";
-                } else {
-                    $leftPercent = $rightPercent = false;
-                    if (substr($value, 0, 1) === "%") {
-                        $value = substr($value, 1);
-                        $leftPercent = true;
-                    }
-                    if (substr($value, -1) === "%") {
-                        $value = substr($value, 0, -1);
-                        $rightPercent = true;
-                    }
-                    $value = "'" . $value . "'";
-                }
-
-                // Compare
-                if ($operator === "COMPARE") {
-                    if ($rightPercent && !$leftPercent) {
-                        $operator = "BEGINS";
-                    } elseif ($leftPercent && !$rightPercent) {
-                        $operator = "ENDS";
-                    } else {
-                        $operator = "LIKE SIMILAR";
-                    }
-                }
-
-                // IS, IS NOT
-                if (($operator === "IS NOT" || $operator === "IS") && $value === "''") {
-                    $value = "empty";
-                }
-
-                $formatedCondition = $propertyName . " " . $operator . " " . $value;
-
-                // Check if is it first condition
-                if ($result === null) {
-                    $result = $formatedCondition;
-                } else {
-                    $result .= " " . $joiner . " " . $formatedCondition;
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    private function convertOrderBy($items)
-    {
-        $result = [];
-        foreach ($items as $name => $direction) {
-
-            if ($direction === "asc") {
-                $direction = "A";
-            } else {
-                $direction = "D";
-            }
-            $result[] = "order=" . rawurlencode($name  . "@" . $direction);
-        }
-        return $result;
-    }
-
     /**
      * Update data by set of conditions
      *
      * @param string $resource
      * @param array  $values
-     * @param array  $conditions
+     * @param string $conditions
      */
-    public function update($resource, array $values, array $conditions)
+    public function update($resource, array $values, $conditions = null)
     {
         $this->connection->put(
             rawurlencode($resource) . ".json?code-in-response=true",
             [
                 "@create" => "fail",
-                $resource => ["@filter" => $this->convertConditions($conditions)] + $values
+                $resource => ["@filter" => $conditions] + $values
             ]
         );
     }
@@ -467,33 +322,6 @@ class Adapter extends \UniMapper\Adapter
             rawurlencode($resource) . ".json?code-in-response=true",
             ["@create" => "fail", $resource => $values]
         );
-    }
-
-    /**
-     * Escape properties with @ char (polozky@removeAll), @showAs, @ref ...
-     *
-     * @param array $properties
-     *
-     * @return array
-     */
-    private function escapeProperties(array $properties)
-    {
-        foreach ($properties as $index => $item) {
-
-            if ($this->endsWith($item, "@removeAll")) {
-                $properties[$index] = substr($item, 0, -10);
-            } elseif ($this->endsWith($item, "@showAs") || $this->endsWith($item, "@action")) {
-                $properties[$index] = substr($item, 0, -7);
-            } elseif ($this->endsWith($item, "@ref")) {
-                $properties[$index] = substr($item, 0, -4);
-            }
-        }
-        return $properties;
-    }
-
-    private function endsWith($haystack, $needle)
-    {
-        return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
     }
 
 }
