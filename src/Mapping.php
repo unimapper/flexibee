@@ -15,7 +15,7 @@ class Mapping extends \UniMapper\Mapping
         if ($value === null) {
             $value = "";
         } elseif ($value instanceof \DateTime) {
-            $value = $value->format(Adapter::DATETIME_FORMAT);
+            $value = $value->format(self::DATETIME_FORMAT);
         }
         return $value;
     }
