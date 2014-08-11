@@ -160,7 +160,7 @@ class Adapter extends \UniMapper\Adapter
      *
      * @return array|false
      */
-    public function findAll($resource, $selection = null, $conditions = null, $orderBy = null, $limit = 0, $offset = 0, array $associations = [])
+    public function find($resource, $selection = null, $conditions = null, $orderBy = null, $limit = 0, $offset = 0, array $associations = [])
     {
         $url = rawurlencode($resource);
 
