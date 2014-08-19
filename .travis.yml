@@ -1,0 +1,25 @@
+language: php
+
+php:
+    - 5.4
+    - 5.5
+    - hhvm
+
+matrix:
+  allow_failures:
+    - php: hhvm
+
+notifications:
+  email:
+    on_success: never
+    on_failure: change
+
+install:
+  - composer self-update
+
+before_script:
+  - composer update --no-interaction --dev
+
+script:
+    - ./vendor/nette/tester/Tester/tester tests/
+    - ./vendor/squizlabs/php_codesniffer/scripts/phpcs ./src --standard=codestyle.xml -n

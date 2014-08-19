@@ -1,1 +1,4 @@
 /nbproject/
+/vendor/
+/tests/*/output/
+composer.lock

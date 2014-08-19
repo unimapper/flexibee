@@ -59,10 +59,10 @@ class Adapter extends \UniMapper\Adapter
 
         foreach ($data->{$resourceName} as $iterator => $row) {
             if (isset($row->{"external-ids"}[0])
-                && substr($row->{"external-ids"}[0],0,5) === "code:"
+                && substr($row->{"external-ids"}[0], 0, 5) === "code:"
             ) {
-                $data->{$resourceName}[$iterator]->id =
-                    $row->{"external-ids"}[0];
+                $data->{$resourceName}[$iterator]->id
+                    = $row->{"external-ids"}[0];
             }
         }
         return $data;

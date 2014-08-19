@@ -24,7 +24,7 @@ class Connection
     public function __construct($config)
     {
         $this->baseUrl = $config["host"] . "/c/" . $config["company"];
-        $this->template = $this->createTemplate($config);
+        $this->template = $this->_createTemplate($config);
     }
 
     public function setAuthUser($username)
@@ -39,7 +39,7 @@ class Connection
      *
      * @return \Httpful\Request
      */
-    private function createTemplate($config)
+    private function _createTemplate($config)
     {
         $template = Request::init();
         if (isset($config["user"])) {
@@ -163,7 +163,8 @@ class Connection
 
         // Check if request failed
         if (isset($response->body->success)
-            && $response->body->success === "false") {
+            && $response->body->success === "false"
+        ) {
 
             if (isset($response->body->results[0]->errors[0])) {
 
