@@ -20,7 +20,7 @@ class Mapping extends \UniMapper\Mapping
         return $value;
     }
 
-    public static function unmapOrderBy(Reflection\Entity $entityReflection, array $items)
+    public function unmapOrderBy(Reflection\Entity $entityReflection, array $items)
     {
         $result = [];
         foreach ($items as $name => $direction) {
@@ -35,7 +35,7 @@ class Mapping extends \UniMapper\Mapping
         return $result;
     }
 
-    public static function unmapConditions(Reflection\Entity $entityReflection, array $conditions)
+    public function unmapConditions(Reflection\Entity $entityReflection, array $conditions)
     {
         $result = "";
 
@@ -45,7 +45,7 @@ class Mapping extends \UniMapper\Mapping
                 // Nested conditions
 
                 list($nestedConditions, $joiner) = $condition;
-                $converted = "(" . self::unmapConditions($entityReflection, $nestedConditions) . ")";
+                $converted = "(" . $this->unmapConditions($entityReflection, $nestedConditions) . ")";
                 // Add joiner if not first condition
                 if ($result !== "") {
                     $result .= " " . $joiner . " ";
@@ -105,12 +105,12 @@ class Mapping extends \UniMapper\Mapping
         return $result;
     }
 
-    public static function unmapSelection(Reflection\Entity $entityReflection, array $selection)
+    public function unmapSelection(Reflection\Entity $entityReflection, array $selection)
     {
         return implode(
             ",",
-            self::escapeProperties(
-                parent::unmapSelection($entityReflection, $selection)
+            $this->escapeProperties(
+                $this->unmapSelection($entityReflection, $selection)
             )
         );
     }
@@ -122,22 +122,22 @@ class Mapping extends \UniMapper\Mapping
      *
      * @return array
      */
-    public static function escapeProperties(array $properties)
+    public function escapeProperties(array $properties)
     {
         foreach ($properties as $index => $item) {
 
-            if (self::endsWith($item, "@removeAll")) {
+            if ($this->endsWith($item, "@removeAll")) {
                 $properties[$index] = substr($item, 0, -10);
-            } elseif (self::endsWith($item, "@showAs") || self::endsWith($item, "@action")) {
+            } elseif ($this->endsWith($item, "@showAs") || $this->endsWith($item, "@action")) {
                 $properties[$index] = substr($item, 0, -7);
-            } elseif (self::endsWith($item, "@ref")) {
+            } elseif ($this->endsWith($item, "@ref")) {
                 $properties[$index] = substr($item, 0, -4);
             }
         }
         return $properties;
     }
 
-    public static function endsWith($haystack, $needle)
+    public function endsWith($haystack, $needle)
     {
         return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
     }
