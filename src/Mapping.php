@@ -110,7 +110,7 @@ class Mapping extends \UniMapper\Mapping
         return implode(
             ",",
             $this->escapeProperties(
-                $this->unmapSelection($entityReflection, $selection)
+                parent::unmapSelection($entityReflection, $selection)
             )
         );
     }
