@@ -57,11 +57,12 @@ class Adapter extends \UniMapper\Adapter
             throw new AdapterException("Unknown response, 'code:' prefix missing?!");
         }
 
-        foreach ($data->{$resourceName} as $iterator => $row) {
+        foreach ($data->{$resourceName} as $index => $row) {
+
             if (isset($row->{"external-ids"}[0])
                 && substr($row->{"external-ids"}[0], 0, 5) === "code:"
             ) {
-                $data->{$resourceName}[$iterator]->id
+                $data->{$resourceName}[$index]->id
                     = $row->{"external-ids"}[0];
             }
         }
