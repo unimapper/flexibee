@@ -20,8 +20,10 @@ class Mapping extends \UniMapper\Mapping
         return $value;
     }
 
-    public function unmapOrderBy(Reflection\Entity $entityReflection, array $items)
-    {
+    public function unmapOrderBy(
+        array $items,
+        Reflection\Entity $entityReflection = null
+    ) {
         $result = [];
         foreach ($items as $name => $direction) {
 
@@ -35,7 +37,7 @@ class Mapping extends \UniMapper\Mapping
         return $result;
     }
 
-    public function unmapConditions(Reflection\Entity $entityReflection, array $conditions)
+    public function unmapConditions(array $conditions, Reflection\Entity $entityReflection = null)
     {
         $result = "";
 
@@ -45,7 +47,7 @@ class Mapping extends \UniMapper\Mapping
                 // Nested conditions
 
                 list($nestedConditions, $joiner) = $condition;
-                $converted = "(" . $this->unmapConditions($entityReflection, $nestedConditions) . ")";
+                $converted = "(" . $this->unmapConditions($nestedConditions, $entityReflection) . ")";
                 // Add joiner if not first condition
                 if ($result !== "") {
                     $result .= " " . $joiner . " ";
@@ -91,7 +93,12 @@ class Mapping extends \UniMapper\Mapping
                     $value = "empty";
                 }
 
-                $formatedCondition = $entityReflection->getProperty($propertyName)->getMappedName() . " " . $operator . " " . $value;
+                // Map property name if needed
+                if ($entityReflection) {
+                    $propertyName = $entityReflection->getProperty($propertyName)->getMappedName();
+                }
+
+                $formatedCondition = $propertyName . " " . $operator . " " . $value;
 
                 // Check if is it first condition
                 if ($result !== "") {
@@ -105,12 +112,14 @@ class Mapping extends \UniMapper\Mapping
         return $result;
     }
 
-    public function unmapSelection(Reflection\Entity $entityReflection, array $selection)
-    {
+    public function unmapSelection(
+        array $selection,
+        Reflection\Entity $entityReflection = null
+    ) {
         return implode(
             ",",
             $this->escapeProperties(
-                parent::unmapSelection($entityReflection, $selection)
+                parent::unmapSelection($selection, $entityReflection)
             )
         );
     }
