@@ -2,8 +2,8 @@
 
 namespace UniMapper\Flexibee;
 
-use UniMapper\Reflection\Entity\Property\Association\HasMany,
-    UniMapper\Reflection\Entity\Property\Association\BelongsToMany,
+use UniMapper\Reflection\Entity\Property\Association\ManyToMany,
+    UniMapper\Reflection\Entity\Property\Association\OneToMany,
     UniMapper\Exception\AdapterException;
 
 /**
@@ -91,7 +91,7 @@ class Adapter extends \UniMapper\Adapter
         $includes = [];
         foreach ($associations as $propertyName => $association) {
 
-            if ($association instanceof HasMany) {
+            if ($association instanceof ManyToMany) {
                 // M:N
 
                 $relations = $this->connection->get(
@@ -110,7 +110,7 @@ class Adapter extends \UniMapper\Adapter
                         }
                     }
                 }
-            } elseif ($association instanceof BelongsToMany) {
+            } elseif ($association instanceof OneToMany) {
                 // 1:N
 
                 $includes[$association->getForeignKey()] = $propertyName;
@@ -188,13 +188,13 @@ class Adapter extends \UniMapper\Adapter
         $relations = [];
         foreach ($associations as $propertyName => $association) {
 
-            if ($association instanceof HasMany) {
+            if ($association instanceof ManyToMany) {
                 // M:N
 
                 if (!in_array("vazby", $relations)) {
                     $relations[] = 'vazby';
                 }
-            } elseif ($association instanceof BelongsToMany) {
+            } elseif ($association instanceof OneToMany) {
                 // 1:N
 
                 $includes[$association->getForeignKey()] = $propertyName;
