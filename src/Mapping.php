@@ -9,6 +9,36 @@ class Mapping extends \UniMapper\Mapping
 
     const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
 
+    public function mapValue(Reflection\Entity\Property $property, $value)
+    {
+        if ($property->isAssociation()
+            && $property->getAssociation() instanceof Reflection\Entity\Property\Association\OneToOne
+            && !empty($value)
+        ) {
+            $value = $value[0];
+        }
+
+        return parent::mapValue($property, $value);
+    }
+
+    public function mapEntity(Reflection\Entity $entityReflection, $data)
+    {
+        if (isset($data->{"external-ids"}) && isset($data->id)) {
+            // Replace id value with 'code:...' from external-ids automatically
+
+            foreach ($data->{"external-ids"} as $externalId) {
+
+                if (substr($externalId, 0, 5) === "code:") {
+
+                    $data->id = $externalId;
+                    break;
+                }
+            }
+        }
+
+        return parent::mapEntity($entityReflection, $data);
+    }
+
     public function unmapValue(Reflection\Entity\Property $property, $value)
     {
         $value = parent::unmapValue($property, $value);

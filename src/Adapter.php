@@ -4,6 +4,7 @@ namespace UniMapper\Flexibee;
 
 use UniMapper\Reflection\Entity\Property\Association\ManyToMany,
     UniMapper\Reflection\Entity\Property\Association\OneToMany,
+    UniMapper\Reflection\Entity\Property\Association\OneToOne,
     UniMapper\Exception\AdapterException;
 
 /**
@@ -39,34 +40,6 @@ class Adapter extends \UniMapper\Adapter
             rawurlencode($resource) . ".json?code-in-response=true",
             [$resource => ["@filter" => $conditions, "@action" => "delete"]]
         );
-    }
-
-    /**
-     * Use 'code:' identifier as primary identifier of entities
-     *
-     * @param mixed  $data         JSON from Flexibee
-     * @param string $resourceName Resource name in Flexibee
-     *
-     * @return mixed
-     *
-     * @throws \UniMapper\Exception\AdapterException
-     */
-    public function setCodeId($data, $resourceName)
-    {
-        if (!isset($data->{$resourceName})) {
-            throw new AdapterException("Unknown response, 'code:' prefix missing?!");
-        }
-
-        foreach ($data->{$resourceName} as $index => $row) {
-
-            if (isset($row->{"external-ids"}[0])
-                && substr($row->{"external-ids"}[0], 0, 5) === "code:"
-            ) {
-                $data->{$resourceName}[$index]->id
-                    = $row->{"external-ids"}[0];
-            }
-        }
-        return $data;
     }
 
     /**
@@ -110,8 +83,9 @@ class Adapter extends \UniMapper\Adapter
                         }
                     }
                 }
-            } elseif ($association instanceof OneToMany) {
+            } elseif ($association instanceof OneToMany || $association instanceof OneToOne) {
                 // 1:N
+                // 1:1 - flexi returns collection but it's solved in mapping)
 
                 $includes[$association->getForeignKey()] = $propertyName;
             } else {
@@ -121,9 +95,8 @@ class Adapter extends \UniMapper\Adapter
 
         // Add includes
         if ($includes) {
-            $includeItems = implode(",", array_keys($includes));
-            $parameters[] = "includes=" . str_replace(",", ",/" . $resource . "/", $includeItems) . "&detail=full";
-            $parameters[] = "relations=" . $includeItems; // Because of attachments
+            $parameters[] = "includes=/" . $resource . "/" . implode("," . "/" . $resource . "/", array_keys($includes)) . "&detail=full";
+            $parameters[] = "relations=" . implode(",", array_keys($includes)); // Because of attachments
         }
 
         // Query on server
@@ -139,11 +112,17 @@ class Adapter extends \UniMapper\Adapter
 
         // Join includes results
         foreach ($includes as $includeKey => $propertyName) {
+
+            if (!isset($result->{$resource}[0]->{$includeKey})) {
+                throw new AdapterException(
+                    "Association key '" . $includeKey . "' not found in associated result, maybe bad association definition given!");
+            }
+
             $result->{$resource}[0]->{$propertyName} = $result->{$resource}[0]->{$includeKey};
             unset($result->{$resource}[0]->{$includeKey});
         }
 
-        return $this->setCodeId($result, $resource)->{$resource}[0];
+        return $result->{$resource}[0];
     }
 
     /**
@@ -194,8 +173,8 @@ class Adapter extends \UniMapper\Adapter
                 if (!in_array("vazby", $relations)) {
                     $relations[] = 'vazby';
                 }
-            } elseif ($association instanceof OneToMany) {
-                // 1:N
+            } elseif ($association instanceof OneToMany || OneToOne) {
+                // 1:N && 1:1
 
                 $includes[$association->getForeignKey()] = $propertyName;
             } else {
@@ -235,13 +214,19 @@ class Adapter extends \UniMapper\Adapter
             foreach ($result->{$resource} as $index => $item) {
 
                 foreach ($includes as $includeKey => $propertyName) {
+
+                    if (!$item->{$includeKey}) {
+                        throw new AdapterException(
+                            "Association key '" . $includeKey . "' not found in associated result, maybe bad association definition given!");
+                    }
+
                     $result->{$resource}[$index]->{$propertyName} = $item->{$includeKey};
                     unset($result->{$resource}[$index]->{$includeKey});
                 }
             }
         }
 
-        return $this->setCodeId($result, $resource)->{$resource};
+        return $result->{$resource};
     }
 
     public function count($resource, $conditions)
