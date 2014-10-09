@@ -2,15 +2,9 @@
 
 namespace UniMapper\Flexibee;
 
-use UniMapper\Reflection\Entity\Property\Association\ManyToMany,
-    UniMapper\Reflection\Entity\Property\Association\OneToMany,
-    UniMapper\Reflection\Entity\Property\Association\OneToOne,
-    UniMapper\Exception\AdapterException;
+use UniMapper\Association,
+    UniMapper\Adapter\IQuery;
 
-/**
- * Flexibee mapper can be generally used to communicate between repository and
- * Flexibee REST API.
- */
 class Adapter extends \UniMapper\Adapter
 {
 
@@ -23,291 +17,273 @@ class Adapter extends \UniMapper\Adapter
         $this->connection = $connection;
     }
 
+    public function createDelete($evidence)
+    {
+        return new Query($evidence, Query::PUT, ["@action" => "delete"]);
+    }
+
+    public function createDeleteOne($evidence, $column, $primaryValue)
+    {
+        $query = new Query($evidence, Query::DELETE);
+        $query->id = $primaryValue;
+        return $query;
+    }
+
+    public function createFindOne($evidence, $column, $primaryValue)
+    {
+        $query = new Query($evidence);
+        $query->id = $primaryValue;
+
+        $query->resultCallback = function ($result, Query $query) {
+
+            $result = $result->{$query->evidence};
+            if (count($result) === 0) {
+                return false;
+            }
+
+            // Merge associations results for mapping compatibility
+            foreach ($result as $index => $item) {
+
+                foreach ($query->associations as $association) {
+
+                    if ($association instanceof Association\ManyToMany) {
+                        // M:N
+
+                        $result[$index]->{$association->getPropertyName()} = [];
+
+                        if ($association->getJoinKey() === "vazby") {
+
+                            foreach ($item->vazby as $relation) {
+
+                                if ($relation->typVazbyK === $association->getJoinResource()) { // eg. typVazbyDokl.obchod_zaloha_hla
+                                    $result[$index]->{$propertyName}[] = $relation->{$association->getReferenceKey()}[0];// 'a' or 'b'
+                                }
+                            }
+                        } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
+
+                            foreach ($item->{"uzivatelske-vazby"} as $relation) {
+
+                                if ($relation->vazbaTyp === $association->getJoinResource()) { // eg. 'code:MY_CUSTOM_ID'
+                                    $result[$index]->{$propertyName}[] = $relation->object[0];
+                                }
+                            }
+                        }
+                    } elseif ($association instanceof Association\OneToOne) {
+                        // 1:1
+
+                        $result[$index]->{$association->getPropertyName()} = $item->{$association->getForeignKey()};
+                    } elseif ($association instanceof Association\ManyToOne ) {
+                        // N:1
+
+                        $result[$index]->{$association->getPropertyName()} = $item->{$association->getReferenceKey()};
+                    }
+                }
+            }
+
+            return $result[0];
+        };
+
+        return $query;
+    }
+
+    public function createFind($evidence, array $selection = [], array $orderBy = [], $limit = 0, $offset = 0)
+    {
+        $query = new Query($evidence);
+
+        $query->parameters["start"] = (int) $offset;
+        $query->parameters["limit"] = (int) $limit;
+
+        foreach ($orderBy as $name => $direction) {
+
+            if ($direction === \UniMapper\Query\Find::ASC) {
+                $direction = "A";
+            } else {
+                $direction = "D";
+            }
+            $query->parameters["order"] = $name . "@" . $direction;
+            break; // @todo multiple not supported yet
+        }
+
+        if ($selection) {
+            $query->parameters["detail"] = "custom:" . implode(",", $this->_escapeSelection($selection));
+        }
+
+        $query->resultCallback = function ($result, Query $query) {
+
+            $result = $result->{$query->evidence};
+            if (count($result) === 0) {
+                return false;
+            }
+
+            // Merge associations results for mapping compatibility
+            foreach ($result as $index => $item) {
+
+                foreach ($query->associations as $association) {
+
+                    $propertyName = $association¨->getPropertyName();
+
+                    if ($association instanceof Association\ManyToMany) {
+                        // M:N
+
+                        $result[$index]->{$propertyName} = [];
+
+                        if ($association->getJoinKey() === "vazby") {
+
+                            foreach ($item->vazby as $relation) {
+
+                                if ($relation->typVazbyK === $association->getJoinResource()) { // eg. typVazbyDokl.obchod_zaloha_hla
+                                    $result[$index]->{$propertyName}[] = $relation->{$association->getReferenceKey()}[0];// 'a' or 'b'
+                                }
+                            }
+                        } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
+
+                            foreach ($item->{"uzivatelske-vazby"} as $relation) {
+
+                                if ($relation->vazbaTyp === $association->getJoinResource()) { // eg. 'code:MY_CUSTOM_ID'
+                                    $result[$index]->{$propertyName}[] = $relation->object[0];
+                                }
+                            }
+                        }
+                    } elseif ($association instanceof Association\OneToOne) {
+                        // 1:1
+
+                        $result[$index]->{$propertyName} = $item->{$association->getForeignKey()};
+                    } elseif ($association instanceof Association\ManyToOne) {
+                        // N:1
+
+                        $result[$index]->{$propertyName} = $item->{$association->getReferenceKey()};
+                    }
+                }
+            }
+
+            return $result;
+        };
+
+        return $query;
+    }
+
+    public function createCount($evidence)
+    {
+        $query = new Query($evidence);
+        $query->parameters["detail"] = "id";
+        $query->parameters["add-row-count"] = "true";
+        $query->resultCallback = function ($result) {
+            return $result->{"@rowCount"};
+        };
+        return $query;
+    }
+
+    public function createModifyManyToMany(Association\ManyToMany $association, $primaryValue, array $refKeys, $action = self::ASSOC_ADD)
+    {
+        if ($association->getJoinKey() !== "uzivatelske-vazby") {
+            throw new \UniMapper\Exception\AdapterException("Only custom relations can be modified!");
+        }
+
+        if ($action === self::ASSOC_ADD) {
+
+            $values = [];
+            foreach ($refKeys as $refkey) {
+                $values[] = [
+                    "id" => $primaryValue,
+                    "uzivatelske-vazby" => [
+                        "uzivatelska-vazba" => [
+                            "evidenceType" => $association->getTargetResource(),
+                            "object" => $refkey,
+                            "vazbaTyp" => $association->getJoinResource()
+                        ]
+                    ]
+                ];
+            }
+
+            $query = $this->createInsert(
+                $association->getSourceResource(),
+                $values
+            );
+        } elseif ($action === self::ASSOC_REMOVE) {
+            throw new \UniMapper\Exception\AdapterException(
+                "Custom relation delete not implemented!"
+            );
+        }
+
+        return $query;
+    }
+
+    public function createInsert($evidence, array $values)
+    {
+        return new Query(
+            $evidence,
+            Query::PUT,
+            [
+                "@update" => "fail",
+                $evidence => $values
+            ]
+        );
+    }
+
+    public function createUpdate($evidence, array $values)
+    {
+        return new Query(
+            $evidence,
+            Query::PUT,
+            ["@create" => "fail", $evidence => $values]
+        );
+    }
+
+    public function createUpdateOne($evidence, $column, $primaryValue, array $values)
+    {
+        $query = $this->createUpdate($evidence, $values);
+        $query->id = $primaryValue;
+        return $query;
+    }
+
+    public function execute(IQuery $query)
+    {
+        if ($query->method === Query::PUT) {
+            $result = $this->connection->put($query->getRaw(), $query->data);
+        } elseif ($query->method === Query::GET) {
+            $result = $this->connection->get($query->getRaw());
+        } elseif ($query->method === Query::DELETE) {
+            $result = $this->connection->delete($query->getRaw());
+        }
+
+        $callback = $query->resultCallback;
+        if ($callback) {
+            return $callback($result, $query);
+        }
+
+        return $result;
+    }
+
     public function getConnection()
     {
         return $this->connection;
     }
 
     /**
-     * Delete record by some conditions
+     * Escape properties with @ char (polozky@removeAll), @showAs, @ref ...
      *
-     * @param string $resource
-     * @param string $conditions
+     * @param array $properties
+     *
+     * @return array
      */
-    public function delete($resource, $conditions)
+    private function _escapeSelection(array $properties)
     {
-        $this->connection->put(
-            rawurlencode($resource) . ".json?code-in-response=true",
-            [$resource => ["@filter" => $conditions, "@action" => "delete"]]
-        );
-    }
+        foreach ($properties as $index => $item) {
 
-    /**
-     * Find single record identified by primary value
-     *
-     * @param string $resource
-     * @param mixed  $primaryName
-     * @param mixed  $primaryValue
-     * @param array  $associations
-     *
-     * @return mixed
-     */
-    public function findOne($resource, $primaryName, $primaryValue, array $associations = [])
-    {
-        $url = rawurlencode($resource) . "/" . rawurlencode($primaryValue) . ".json";
-
-        $parameters = [];
-        $parameters[] = "code-as-id=true";
-
-        // Associations
-        $associated = [];
-        $includes = [];
-        foreach ($associations as $propertyName => $association) {
-
-            if ($association instanceof ManyToMany) {
-                // M:N
-
-                $relations = $this->connection->get(
-                    rawurlencode($resource) . "/" . rawurlencode($primaryValue) . "/vazby.json?code-as-id=true&detail=full&includes=/winstrom/vazba/a,/winstrom/vazba/b"
-                );
-
-                if (isset($relations->vazba)) {
-
-                    foreach ($relations->vazba as $index => $relation) {
-
-                        if ($relation->typVazbyK === $association->getJoinResource()) {
-                            foreach ($relation->{$association->getReferenceKey()} as $index => $item) {
-                                $associated[$propertyName] = new \stdClass;
-                                $associated[$propertyName]->{$index} = $item;
-                            }
-                        }
-                    }
-                }
-            } elseif ($association instanceof OneToMany || $association instanceof OneToOne) {
-                // 1:N
-                // 1:1 - flexi returns collection but it's solved in mapping)
-
-                $includes[$association->getForeignKey()] = $propertyName;
-            } else {
-                throw new AdapterException("Unsupported association " . get_class($association) . "!");
+            if ($this->_endsWith($item, "@removeAll")) {
+                $properties[$index] = substr($item, 0, -10);
+            } elseif ($this->_endsWith($item, "@showAs") || $this->_endsWith($item, "@action")) {
+                $properties[$index] = substr($item, 0, -7);
+            } elseif ($this->_endsWith($item, "@ref")) {
+                $properties[$index] = substr($item, 0, -4);
             }
         }
-
-        // Add includes
-        if ($includes) {
-            $parameters[] = "includes=/" . $resource . "/" . implode("," . "/" . $resource . "/", array_keys($includes)) . "&detail=full";
-            $parameters[] = "relations=" . implode(",", array_keys($includes)); // Because of attachments
-        }
-
-        // Query on server
-        $result = $this->connection->get($url . "?" . implode("&", $parameters));
-        if (!isset($result->{$resource}[0])) {
-            return false;
-        }
-
-        // Join associated results
-        foreach ($associated as $propertyName => $values) {
-            $result->{$resource}[0]->{$propertyName} = $values;
-        }
-
-        // Join includes results
-        foreach ($includes as $includeKey => $propertyName) {
-
-            if (!isset($result->{$resource}[0]->{$includeKey})) {
-                throw new AdapterException(
-                    "Association key '" . $includeKey . "' not found in associated result, maybe bad association definition given!");
-            }
-
-            $result->{$resource}[0]->{$propertyName} = $result->{$resource}[0]->{$includeKey};
-            unset($result->{$resource}[0]->{$includeKey});
-        }
-
-        return $result->{$resource}[0];
+        return $properties;
     }
 
-    /**
-     * Find records
-     *
-     * @param string  $resource
-     * @param string  $selection
-     * @param string  $conditions
-     * @param array   $orderBy
-     * @param integer $limit
-     * @param integer $offset
-     * @param array   $associations
-     *
-     * @throws \UniMapper\Exception\AdapterException
-     *
-     * @return array|false
-     */
-    public function find($resource, $selection = null, $conditions = null, $orderBy = null, $limit = 0, $offset = 0, array $associations = [])
+    private function _endsWith($haystack, $needle)
     {
-        $url = rawurlencode($resource);
-
-        // Apply conditions
-        if ($conditions) {
-            $url .= "/" . rawurlencode("(" . $conditions . ")");
-        }
-
-        // Set response type
-        $url .= ".json";
-
-        // Define additional parameters
-        $parameters = $orderBy;
-
-        // Offset and limit must be defined even if null given
-        $parameters[] = "start=" . (int) $offset;
-        $parameters[] = "limit=" . (int) $limit;
-
-        // Try to get IDs as 'code:...'
-        $parameters[] = "code-as-id=true";
-
-        // Associations
-        $includes = [];
-        $relations = [];
-        foreach ($associations as $propertyName => $association) {
-
-            if ($association instanceof ManyToMany) {
-                // M:N
-
-                if (!in_array("vazby", $relations)) {
-                    $relations[] = 'vazby';
-                }
-            } elseif ($association instanceof OneToMany || OneToOne) {
-                // 1:N && 1:1
-
-                $includes[$association->getForeignKey()] = $propertyName;
-            } else {
-                throw new AdapterException("Unsupported association " . get_class($association) . "!");
-            }
-        }
-
-        // Add includes
-        if ($includes) {
-
-            $includeItems = [];
-            foreach (array_keys($includes) as $index => $includeItem) {
-                $includeItems[$index] = "/" . rawurlencode($resource) . "/" . $includeItem;
-            }
-            $parameters[] = "includes=" . implode(",", $includeItems);
-            $relations = array_merge($relations, array_keys($includes));
-        }
-
-        if ($relations) {
-            $parameters[] = "relations=" . implode(",", $relations);
-        }
-
-        // Add custom fields from entity properties definitions
-        if ($selection) {
-            $parameters[] = "detail=custom:" . rawurlencode($selection);
-        }
-
-        // Query on server
-        $result = $this->connection->get($url . "?" . implode("&", $parameters));
-        if (count($result->{$resource}) === 0) {
-            return false;
-        }
-
-        // Join includes results
-        if ($includes) {
-
-            foreach ($result->{$resource} as $index => $item) {
-
-                foreach ($includes as $includeKey => $propertyName) {
-
-                    if (!$item->{$includeKey}) {
-                        throw new AdapterException(
-                            "Association key '" . $includeKey . "' not found in associated result, maybe bad association definition given!");
-                    }
-
-                    $result->{$resource}[$index]->{$propertyName} = $item->{$includeKey};
-                    unset($result->{$resource}[$index]->{$includeKey});
-                }
-            }
-        }
-
-        return $result->{$resource};
-    }
-
-    public function count($resource, $conditions)
-    {
-        // Get URL
-        $url = rawurlencode($resource);
-
-        // Apply conditions
-        if ($conditions) {
-            $url .= "/" . rawurlencode("(" . $conditions . ")");
-        }
-
-        return $this->connection->get($url . ".json?detail=id&add-row-count=true")->{"@rowCount"};
-    }
-
-    /**
-     * Insert
-     *
-     * @param string $resource
-     * @param array  $values
-     *
-     * @return mixed Primary value
-     */
-    public function insert($resource, array $values)
-    {
-        $result = $this->connection->put(
-            rawurlencode($resource) . ".json?code-in-response=true",
-            array(
-                "@update" => "fail",
-                $resource => $values
-            )
-        );
-
-        if (isset($result->results)) {
-            foreach ($result->results as $result) {
-                if (isset($result->ref)
-                    && strpos($result->ref, $resource) !== false
-                ) {
-                    if (isset($result->code)) {
-                        return "code:" . $result->code;
-                    } elseif (isset($result->id)) {
-                        return $result->id;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Update data by set of conditions
-     *
-     * @param string $resource
-     * @param array  $values
-     * @param string $conditions
-     */
-    public function update($resource, array $values, $conditions = null)
-    {
-        $this->connection->put(
-            rawurlencode($resource) . ".json?code-in-response=true",
-            [
-                "@create" => "fail",
-                $resource => ["@filter" => $conditions] + $values
-            ]
-        );
-    }
-
-    /**
-     * Update single record
-     *
-     * @param string $resource
-     * @param string $primaryName
-     * @param mixed  $primaryValue
-     * @param array  $values
-     */
-    public function updateOne($resource, $primaryName, $primaryValue, array $values)
-    {
-        $values[$primaryName] = $primaryValue;
-        $this->connection->put(
-            rawurlencode($resource) . ".json?code-in-response=true",
-            ["@create" => "fail", $resource => $values]
-        );
+        return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
     }
 
 }

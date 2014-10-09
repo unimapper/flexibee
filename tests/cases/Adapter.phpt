@@ -19,16 +19,10 @@ class AdapterTest extends Tester\TestCase
         $this->adapter = new UniMapper\Flexibee\Adapter("test", $this->connectionMock);
     }
 
-    public function testDelete()
+    public function testCreateDelete()
     {
-        $this->connectionMock->shouldReceive("put")
-            ->with(
-                "entity.json?code-in-response=true",
-                ['@update'=>'fail', 'entity' => ['col'=>'val']]
-            )
-            ->andReturn();
-
-        Assert::null($this->adapter->insert("entity", ["col" => "val"]));
+        $query = $this->adapter->createDelete("objednavka-prijata");
+        Assert::same("objednavka-prijata.json?code-in-response=true", $query->getRaw());
     }
 
 }
