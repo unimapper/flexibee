@@ -19,13 +19,25 @@ class Adapter extends \UniMapper\Adapter
 
     public function createDelete($evidence)
     {
-        return new Query($evidence, Query::PUT, ["@action" => "delete"]);
+        $query = new Query($evidence, Query::PUT, ["@action" => "delete"]);
+        $query->resultCallback = function ($result) {
+            return (int) $result->stats->deleted;
+        };
+        return $query;
     }
 
     public function createDeleteOne($evidence, $column, $primaryValue)
     {
         $query = new Query($evidence, Query::DELETE);
         $query->id = $primaryValue;
+        $query->resultCallback = function ($result) {
+
+            $affected = (int) $result->stats->deleted;
+            if ($affected > 1) {
+                throw new \UniMapper\Exception\AdapterException("Deleted more than one document!");
+            }
+            return $affected === 1 ? true : false;
+        };
         return $query;
     }
 
@@ -213,20 +225,21 @@ class Adapter extends \UniMapper\Adapter
         return new Query(
             $evidence,
             Query::PUT,
-            [
-                "@update" => "fail",
-                $evidence => $values
-            ]
+            ["@update" => "fail", $evidence => $values]
         );
     }
 
     public function createUpdate($evidence, array $values)
     {
-        return new Query(
+        $query = new Query(
             $evidence,
             Query::PUT,
             ["@create" => "fail", $evidence => $values]
         );
+        $query->resultCallback = function ($result) {
+            return (int) $result->stats->updated;
+        };
+        return $query;
     }
 
     public function createUpdateOne($evidence, $column, $primaryValue, array $values)
@@ -235,6 +248,15 @@ class Adapter extends \UniMapper\Adapter
 
         $query = $this->createUpdate($evidence, $values);
         $query->id = $primaryValue;
+        $query->resultCallback = function ($result) {
+
+            $affected = (int) $result->stats->updated;
+            if ($affected > 1) {
+                throw new \UniMapper\Exception\AdapterException("Updated more than one document!");
+            }
+            return $affected === 1 ? true : false;
+        };
+
         return $query;
     }
 
