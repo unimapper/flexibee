@@ -31,12 +31,7 @@ class Adapter extends \UniMapper\Adapter
         $query = new Query($evidence, Query::DELETE);
         $query->id = $primaryValue;
         $query->resultCallback = function ($result) {
-
-            $affected = (int) $result->stats->deleted;
-            if ($affected > 1) {
-                throw new \UniMapper\Exception\AdapterException("Deleted more than one document!");
-            }
-            return $affected === 1 ? true : false;
+            return $result->stats->deleted === "0" ? false : true;
         };
         return $query;
     }
@@ -249,12 +244,7 @@ class Adapter extends \UniMapper\Adapter
         $query = $this->createUpdate($evidence, $values);
         $query->id = $primaryValue;
         $query->resultCallback = function ($result) {
-
-            $affected = (int) $result->stats->updated;
-            if ($affected > 1) {
-                throw new \UniMapper\Exception\AdapterException("Updated more than one document!");
-            }
-            return $affected === 1 ? true : false;
+            return $result->stats->updated === "0" ? false : true;
         };
 
         return $query;
