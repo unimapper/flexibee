@@ -231,6 +231,8 @@ class Adapter extends \UniMapper\Adapter
 
     public function createUpdateOne($evidence, $column, $primaryValue, array $values)
     {
+        $values[$column] = $primaryValue;
+
         $query = $this->createUpdate($evidence, $values);
         $query->id = $primaryValue;
         return $query;
