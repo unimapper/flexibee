@@ -133,7 +133,10 @@ class Query implements \UniMapper\Adapter\IQuery
                     $value = "('" . implode("','", $value) . "')";
                 } elseif ($value instanceof \DateTime) {
                     $value = "'" . $value->format(Mapping::DATETIME_FORMAT) . "'";
+                } elseif (is_bool($value)) {
+                    $value = var_export($value, true);
                 } else {
+
                     $leftPercent = $rightPercent = false;
                     if (substr($value, 0, 1) === "%") {
                         $value = substr($value, 1);
@@ -157,9 +160,16 @@ class Query implements \UniMapper\Adapter\IQuery
                     }
                 }
 
-                // IS, IS NOT
-                if (($operator === "IS NOT" || $operator === "IS") && $value === "''") {
+                // Compare logical values
+                if (($operator === "IS NOT" || $operator === "IS"  || $operator === "!=" || $operator === "=")
+                    && ($value === "" || $value === "''")
+                ) {
                     $value = "empty";
+                }
+                if (($operator === "IS NOT" || $operator === "IS"  || $operator === "!=" || $operator === "=")
+                    && $value === null
+                ) {
+                    $value = "null";
                 }
 
                 $formatedCondition = $name . " " . $operator . " " . $value;
