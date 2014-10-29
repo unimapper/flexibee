@@ -30,9 +30,6 @@ class Adapter extends \UniMapper\Adapter
     {
         $query = new Query($evidence, Query::DELETE);
         $query->id = $primaryValue;
-        $query->resultCallback = function ($result) {
-            return $result->stats->deleted === "0" ? false : true;
-        };
         return $query;
     }
 

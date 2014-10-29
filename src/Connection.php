@@ -68,22 +68,10 @@ class Connection
         $request = Request::delete($url);
         $response = $request->send();
 
-        if ($response->hasErrors()) {
-            if (isset($response->body->winstrom->message)) {
-                $message = "Error during DELETE from Flexibee: " .
-                    $response->body->winstrom->message .
-                    " (" . $url . ")";
-            } else {
-                $message = "Error during DELETE from Flexibee" .
-                    " (" . $url . ")";
-            }
-            throw new Exception($message, $request);
+        if ($response->code !== 200) {
+            return false;
         }
-
-        if (isset($response->body->winstrom)) {
-            return $response->body->winstrom;
-        }
-        return $response->body;
+        return true;
     }
 
     /**
