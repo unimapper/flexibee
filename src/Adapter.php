@@ -217,11 +217,23 @@ class Adapter extends \UniMapper\Adapter
 
     public function createInsert($evidence, array $values)
     {
-        return new Query(
+        $query = new Query(
             $evidence,
             Query::PUT,
             ["@update" => "fail", $evidence => $values]
         );
+        $query->resultCallback = function ($result) {
+
+            foreach ($result->results as $item) {
+
+                if (isset($item->code)) {
+                    return "code:" . $result->code;
+                } else {
+                    return $result->id;
+                }
+            }
+        };
+        return $query;
     }
 
     public function createUpdate($evidence, array $values)
