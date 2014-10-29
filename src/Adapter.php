@@ -227,9 +227,9 @@ class Adapter extends \UniMapper\Adapter
             foreach ($result->results as $item) {
 
                 if (isset($item->code)) {
-                    return "code:" . $result->code;
+                    return "code:" . $item->code;
                 } else {
-                    return $result->id;
+                    return $item->id;
                 }
             }
         };
