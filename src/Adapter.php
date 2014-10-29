@@ -265,6 +265,10 @@ class Adapter extends \UniMapper\Adapter
     public function execute(IQuery $query)
     {
         if ($query->method === Query::PUT) {
+
+            if ($query->filter) {
+                $query->data[$query->evidence]["@filter"] = $query->filter;
+            }
             $result = $this->connection->put($query->getRaw(), $query->data);
         } elseif ($query->method === Query::GET) {
             $result = $this->connection->get($query->getRaw());
