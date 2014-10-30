@@ -22,7 +22,7 @@ class Query implements \UniMapper\Adapter\IQuery
     public $includes = [];
     public $relations = [];
 
-    public function __construct($evidence, $method = self::GET, $data = [])
+    public function __construct($evidence, $method = self::GET, array $data = [])
     {
         $this->evidence = $evidence;
         $this->method = $method;
@@ -116,41 +116,32 @@ class Query implements \UniMapper\Adapter\IQuery
                 // Nested conditions
 
                 list($nestedConditions, $joiner) = $condition;
-                $converted = "(" . $this->_formatConditions($nestedConditions) . ")";
-                // Add joiner if not first condition
-                if ($result !== "") {
-                    $result .= " " . $joiner . " ";
-                }
-                $result .= $converted;
 
+                $formated = "(" . $this->_formatConditions($nestedConditions) . ")";
             } else {
                 // Simple condition
 
                 list($name, $operator, $value, $joiner) = $condition;
 
-                // Value
-                if (is_array($value)) {
-                    $value = "('" . implode("','", $value) . "')";
-                } elseif ($value instanceof \DateTime) {
-                    $value = "'" . $value->format(Mapping::DATETIME_FORMAT) . "'";
-                } elseif (is_bool($value)) {
-                    $value = var_export($value, true);
-                } else {
-
-                    $leftPercent = $rightPercent = false;
-                    if (substr($value, 0, 1) === "%") {
-                        $value = substr($value, 1);
-                        $leftPercent = true;
-                    }
-                    if (substr($value, -1) === "%") {
-                        $value = substr($value, 0, -1);
-                        $rightPercent = true;
-                    }
-                    $value = "'" . $value . "'";
+                if ($name === "stitky") {
+                    $value = explode(",", $value);
                 }
 
                 // Compare
                 if ($operator === "COMPARE") {
+
+                    $leftPercent = $rightPercent = false;
+
+                    if (substr($value, 0, 1) === "%") {
+                        $value = substr($value, 1);
+                        $leftPercent = true;
+                    }
+
+                    if (substr($value, -1) === "%") {
+                        $value = substr($value, 0, -1);
+                        $rightPercent = true;
+                    }
+
                     if ($rightPercent && !$leftPercent) {
                         $operator = "BEGINS";
                     } elseif ($leftPercent && !$rightPercent) {
@@ -158,29 +149,46 @@ class Query implements \UniMapper\Adapter\IQuery
                     } else {
                         $operator = "LIKE SIMILAR";
                     }
+
+                    $formated = $name . " " . $operator . " '" . $value . "'";
                 }
 
-                // Compare logical values
-                if (($operator === "IS NOT" || $operator === "IS"  || $operator === "!=" || $operator === "=")
-                    && ($value === "" || $value === "''")
-                ) {
-                    $value = "empty";
-                }
-                if (($operator === "IS NOT" || $operator === "IS"  || $operator === "!=" || $operator === "=")
-                    && $value === null
-                ) {
-                    $value = "null";
+                if ($operator === "NOT IN") {
+
+                    foreach ($value as $index => $item) {
+                        $value[$index] = $name . " != '" .  $item . "'";
+                    }
+
+                    $formated = "(" . implode(" AND ", $value) . ")";
                 }
 
-                $formatedCondition = $name . " " . $operator . " " . $value;
-
-                // Check if is it first condition
-                if ($result !== "") {
-                    $result .= " " . $joiner . " ";
+                if ($operator === "IN") {
+                    $formated = $name . " IN ('" . implode("','", $value) . "')";
                 }
 
-                $result .=  $formatedCondition;
+                // Logical values and compare
+                if (in_array($operator, ["=", "<", ">", "<>", ">=", "<=", "IS", "IS NOT", "!="], true)) {
+
+                    if ($value === "''") {
+                        $value = "empty";
+                    } elseif ($value === null) {
+                        $value = "null";
+                    } elseif (in_array($operator, ["IS", "IS NOT"], true) && is_bool($value)) {
+                        $value = var_export($value, true);
+                    } else {
+                        $value = "'" . $value . "'";
+                    }
+
+                    $formated = $name . " " . $operator . " " . $value;
+                }
             }
+
+            // Add joiner if not first condition
+            if ($result !== "") {
+                $result .= " " . $joiner . " ";
+            }
+
+            $result .= $formated;
         }
 
         return $result;
