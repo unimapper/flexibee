@@ -163,7 +163,16 @@ class Query implements \UniMapper\Adapter\IQuery
                 }
 
                 if ($operator === "IN") {
-                    $formated = $name . " IN ('" . implode("','", $value) . "')";
+
+                    if ($name === "stitky") {
+
+                        foreach ($value as $index => $item) {
+                            $value[$index] = $name . " = '" .  $item . "'";
+                        }
+                        $formated = "(" . implode(" OR ", $value) . ")";
+                    } else {
+                        $formated = $name . " IN ('" . implode("','", $value) . "')";
+                    }
                 }
 
                 // Logical values and compare
