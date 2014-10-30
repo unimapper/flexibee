@@ -43,11 +43,17 @@ class Mapping extends \UniMapper\Mapping
     public function unmapValue(Reflection\Entity\Property $property, $value)
     {
         $value = parent::unmapValue($property, $value);
+
         if ($value === null) {
             $value = "";
         } elseif ($value instanceof \DateTime) {
+
             $value = $value->format(self::DATETIME_FORMAT);
+            if ($value === false) {
+                throw new \Exception("Can not convert DateTime automatically!");
+            }
         }
+
         return $value;
     }
 
