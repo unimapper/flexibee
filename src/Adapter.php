@@ -124,7 +124,7 @@ class Adapter extends \UniMapper\Adapter
 
                 foreach ($query->associations as $association) {
 
-                    $propertyName = $association¨->getPropertyName();
+                    $propertyName = $association->getPropertyName();
 
                     if ($association instanceof Association\ManyToMany) {
                         // M:N
