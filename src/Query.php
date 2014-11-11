@@ -65,6 +65,7 @@ class Query implements \UniMapper\Adapter\IQuery
             } else {
                 throw new \Exception("Unsupported association " . get_class($association) . "!");
             }
+            $this->associations[] = $association;           
         }
     }
 
