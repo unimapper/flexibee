@@ -2,19 +2,39 @@
 
 namespace UniMapper\Flexibee;
 
-use UniMapper\Association,
+use Httpful\Request,
+    UniMapper\Association,
     UniMapper\Adapter\IQuery;
 
-class Adapter extends \UniMapper\Adapter
+class Adapter implements \UniMapper\Adapter\IAdapter
 {
 
-    /** @var \UniMapper\Flexibee\Connection $connection */
-    private $connection;
+    /** @var Adapter\Mapper */
+    private $mapper;
 
-    public function __construct($name, Connection $connection)
+    /** @var string */
+    private $baseUrl;
+
+    /** @var \Httpful\Request $template Request template */
+    private $template;
+
+    public function __construct(array $config)
     {
-        parent::__construct($name, new Mapping);
-        $this->connection = $connection;
+        $this->baseUrl = $config["host"] . "/c/" . $config["company"];
+        $this->mapper = new Adapter\Mapper;
+
+        $this->template = Request::init();
+        if (isset($config["user"])) {
+            $this->template->authenticateWith($config["user"], $config["password"])
+                ->addOnCurlOption(CURLOPT_SSLVERSION, 3)
+                ->withoutStrictSSL()
+                ->followRedirects(true);
+        }
+    }
+
+    public function setAuthUser($username)
+    {
+        $this->template->addHeader("X-FlexiBee-Authorization", $username);
     }
 
     public function createDelete($evidence)
@@ -60,7 +80,7 @@ class Adapter extends \UniMapper\Adapter
                             foreach ($item->vazby as $relation) {
 
                                 if ($relation->typVazbyK === $association->getJoinResource()) { // eg. typVazbyDokl.obchod_zaloha_hla
-                                    $result[$index]->{$propertyName}[] = $relation->{$association->getReferenceKey()}[0];// 'a' or 'b'
+                                    $result[$index]->{$association->getPropertyName()}[] = $relation->{$association->getReferenceKey()}[0];// 'a' or 'b'
                                 }
                             }
                         } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
@@ -68,7 +88,7 @@ class Adapter extends \UniMapper\Adapter
                             foreach ($item->{"uzivatelske-vazby"} as $relation) {
 
                                 if ($relation->vazbaTyp === $association->getJoinResource()) { // eg. 'code:MY_CUSTOM_ID'
-                                    $result[$index]->{$propertyName}[] = $relation->object[0];
+                                    $result[$index]->{$association->getPropertyName()}[] = $relation->object[0];
                                 }
                             }
                         }
@@ -266,11 +286,11 @@ class Adapter extends \UniMapper\Adapter
             if ($query->filter) {
                 $query->data[$query->evidence]["@filter"] = $query->filter;
             }
-            $result = $this->connection->put($query->getRaw(), $query->data);
+            $result = $this->put($query->getRaw(), $query->data);
         } elseif ($query->method === Query::GET) {
-            $result = $this->connection->get($query->getRaw());
+            $result = $this->get($query->getRaw());
         } elseif ($query->method === Query::DELETE) {
-            $result = $this->connection->delete($query->getRaw());
+            $result = $this->delete($query->getRaw());
         }
 
         $callback = $query->resultCallback;
@@ -311,6 +331,147 @@ class Adapter extends \UniMapper\Adapter
     private function _endsWith($haystack, $needle)
     {
         return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
+    }
+
+    public function getMapper()
+    {
+        return $this->mapper;
+    }
+
+    /**
+     * Getter for URL
+     *
+     * @return string
+     */
+    public function getBaseUrl()
+    {
+        return $this->baseUrl;
+    }
+
+    public function delete($url)
+    {
+        $url = $this->baseUrl . "/" . $url;
+        Request::ini($this->template);
+        $request = Request::delete($url);
+        $response = $request->send();
+
+        if ($response->code !== 200) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Send request and get data from response
+     *
+     * @param string $url URL
+     *
+     * @return \stdClass|\SimpleXMLElement Output format depends on selected
+     *                                       format in URL.
+     */
+    public function get($url)
+    {
+        $url = $this->baseUrl . "/" . $url;
+        Request::ini($this->template);
+        $request = Request::get($url);
+        $response = $request->send();
+
+        if ($response->hasErrors()) {
+            if (isset($response->body->winstrom->message)) {
+                $message = "Error during GET from Flexibee: " .
+                    $response->body->winstrom->message .
+                    " (" . $url . ")";
+            } else {
+                $message = "Error during GET from Flexibee" .
+                    " (" . $url . ")";
+            }
+            throw new Exception($message, $request);
+        }
+
+        if (isset($response->body->winstrom)) {
+            $result = $response->body->winstrom;
+        } else {
+            $result = $response->body;
+        }
+
+        // Check if request failed
+        if (isset($result->success) && $result->success === "false") {
+            throw new Exception($result->message, $request);
+        }
+        return $result;
+    }
+
+    /**
+     * Send request as PUT and return response
+     *
+     * @param string $url     URL
+     * @param string $payload Request
+     *
+     * @return string
+     */
+    public function put($url, $payload, $contentType = "application/json")
+    {
+        $url = $this->baseUrl . "/" . $url;
+        Request::ini($this->template);
+
+        if ($contentType === "application/json") {
+            $payload = json_encode(array("flexibee" => $payload));
+        }
+
+        $request = Request::put($url, $payload, $contentType);
+        $response = $request->send();
+
+        if ($response->hasErrors()) {
+            preg_match('/.*\"message\":\"(.*)\".*/i', $response->raw_body, $errors);
+            if (isset($errors[1])) {
+                $message = "Error during PUT to Flexibee: " . $errors[1];
+            } else {
+                $message = "Error during PUT to Flexibee";
+            }
+
+            throw new Exception($message, $request);
+        }
+
+        if (isset($response->body->winstrom)) {
+            return $response->body->winstrom;
+        }
+
+        // Check if request failed
+        if (isset($response->body->success)
+            && $response->body->success === "false"
+        ) {
+
+            if (isset($response->body->results[0]->errors[0])) {
+
+                $errorDetails = $response->body->results[0]->errors[0];
+                $error = "";
+
+                if (isset($errorDetails->message)) {
+                    $error .= " MESSAGE: {$errorDetails->message}";
+                }
+                if (isset($errorDetails->for)) {
+                    $error .= " FOR: {$errorDetails->for}";
+                }
+                if (isset($errorDetails->value)) {
+                    $error .= " VALUE: {$errorDetails->value}";
+                }
+                if (isset($errorDetails->code)) {
+                    $error .= " CODE: {$errorDetails->code}";
+                }
+            }
+
+            if (isset($error)) {
+                throw new Exception("Flexibee error: {$error}");
+            }
+
+            if (isset($response->body->message)) {
+                throw new Exception("Flexibee error: " . $response->body->message, $request);
+            }
+
+            throw new Exception("An unknown flexibee error occurred", $request);
+        }
+
+        return $response->body;
     }
 
 }

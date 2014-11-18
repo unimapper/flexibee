@@ -1,11 +1,11 @@
 <?php
 
-namespace UniMapper\Flexibee;
+namespace UniMapper\Flexibee\Adapter;
 
 use UniMapper\Reflection,
     UniMapper\Association;
 
-class Mapping extends \UniMapper\Mapping
+class Mapper extends \UniMapper\Adapter\Mapper
 {
 
     const DATETIME_FORMAT = "Y-m-d\TH:i:sP";

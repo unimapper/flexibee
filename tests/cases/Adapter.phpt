@@ -16,7 +16,7 @@ class AdapterTest extends Tester\TestCase
     public function setUp()
     {
         $this->connectionMock = Mockery::mock("UniMapper\Flexibee\Connection");
-        $this->adapter = new UniMapper\Flexibee\Adapter("test", $this->connectionMock);
+        $this->adapter = new UniMapper\Flexibee\Adapter(["host" => null, "company" => null]);
     }
 
     public function testCreateDelete()
