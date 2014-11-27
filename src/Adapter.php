@@ -6,7 +6,7 @@ use Httpful\Request,
     UniMapper\Association,
     UniMapper\Adapter\IQuery;
 
-class Adapter implements \UniMapper\Adapter\IAdapter
+class Adapter extends \UniMapper\Adapter
 {
 
     /** @var Adapter\Mapper */
@@ -53,7 +53,7 @@ class Adapter implements \UniMapper\Adapter\IAdapter
         return $query;
     }
 
-    public function createFindOne($evidence, $column, $primaryValue)
+    public function createSelectOne($evidence, $column, $primaryValue)
     {
         $query = new Query($evidence);
         $query->id = $primaryValue;
@@ -110,7 +110,7 @@ class Adapter implements \UniMapper\Adapter\IAdapter
         return $query;
     }
 
-    public function createFind($evidence, array $selection = [], array $orderBy = [], $limit = 0, $offset = 0)
+    public function createSelect($evidence, array $selection = [], array $orderBy = [], $limit = 0, $offset = 0)
     {
         $query = new Query($evidence);
 
@@ -119,7 +119,7 @@ class Adapter implements \UniMapper\Adapter\IAdapter
 
         foreach ($orderBy as $name => $direction) {
 
-            if ($direction === \UniMapper\Query\Find::ASC) {
+            if ($direction === \UniMapper\Query\Select::ASC) {
                 $direction = "A";
             } else {
                 $direction = "D";
@@ -279,7 +279,7 @@ class Adapter implements \UniMapper\Adapter\IAdapter
         return $query;
     }
 
-    public function execute(IQuery $query)
+    protected function onExecute(IQuery $query)
     {
         if ($query->method === Query::PUT) {
 
