@@ -9,9 +9,6 @@ use Httpful\Request,
 class Adapter extends \UniMapper\Adapter
 {
 
-    /** @var Adapter\Mapper */
-    private $mapper;
-
     /** @var string */
     private $baseUrl;
 
@@ -20,10 +17,10 @@ class Adapter extends \UniMapper\Adapter
 
     public function __construct(array $config)
     {
+        parent::__construct(new Adapter\Mapping);
         $this->baseUrl = $config["host"] . "/c/" . $config["company"];
-        $this->mapper = new Adapter\Mapper;
-
         $this->template = Request::init();
+
         if (isset($config["user"])) {
             $this->template->authenticateWith($config["user"], $config["password"])
                 ->addOnCurlOption(CURLOPT_SSLVERSION, 3)
@@ -333,11 +330,6 @@ class Adapter extends \UniMapper\Adapter
         return $needle === "" || substr($haystack, -strlen($needle)) === $needle;
     }
 
-    public function getMapper()
-    {
-        return $this->mapper;
-    }
-
     /**
      * Getter for URL
      *
@@ -367,7 +359,7 @@ class Adapter extends \UniMapper\Adapter
      * @param string $url URL
      *
      * @return \stdClass|\SimpleXMLElement Output format depends on selected
-     *                                       format in URL.
+     *                                     format in URL.
      */
     public function get($url)
     {
@@ -385,7 +377,7 @@ class Adapter extends \UniMapper\Adapter
                 $message = "Error during GET from Flexibee" .
                     " (" . $url . ")";
             }
-            throw new Exception($message, $request);
+            throw new \Exception($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -396,8 +388,24 @@ class Adapter extends \UniMapper\Adapter
 
         // Check if request failed
         if (isset($result->success) && $result->success === "false") {
-            throw new Exception($result->message, $request);
+            throw new \Exception($result->message, $request);
         }
+
+        if (\UniMapper\Validator::isTraversable($result)) {
+
+            foreach ($result as $name => $value) {
+
+                if (is_array($value)) {
+
+                    foreach ($value as $index => $item) {
+                        $result->{$name}[$index] = $this->_replaceExternalIds($item);
+                    }
+                } else {
+                     $result->{$name} = $this->_replaceExternalIds($value);
+                }
+            }
+        }
+
         return $result;
     }
 
@@ -429,7 +437,7 @@ class Adapter extends \UniMapper\Adapter
                 $message = "Error during PUT to Flexibee";
             }
 
-            throw new Exception($message, $request);
+            throw new \Exception($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -461,17 +469,39 @@ class Adapter extends \UniMapper\Adapter
             }
 
             if (isset($error)) {
-                throw new Exception("Flexibee error: {$error}");
+                throw new \Exception("Flexibee error: {$error}");
             }
 
             if (isset($response->body->message)) {
-                throw new Exception("Flexibee error: " . $response->body->message, $request);
+                throw new \Exception("Flexibee error: " . $response->body->message, $request);
             }
 
-            throw new Exception("An unknown flexibee error occurred", $request);
+            throw new \Exception("An unknown flexibee error occurred", $request);
         }
 
         return $response->body;
+    }
+
+    /**
+     * Replace id value with 'code:...' from external-ids automatically
+     *
+     * @param mixed $data
+     *
+     * @return mixed
+     */
+    private function _replaceExternalIds($data)
+    {
+        if (is_object($data) && isset($data->{"external-ids"}) && isset($data->id)) {
+
+            foreach ($data->{"external-ids"} as $externalId) {
+                if (substr($externalId, 0, 5) === "code:") {
+                    $data->id = $externalId;
+                    break;
+                }
+            }
+        }
+
+        return $data;
     }
 
 }
