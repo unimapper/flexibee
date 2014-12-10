@@ -377,7 +377,7 @@ class Adapter extends \UniMapper\Adapter
                 $message = "Error during GET from Flexibee" .
                     " (" . $url . ")";
             }
-            throw new \Exception($message, $request);
+            throw new Exception($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -388,7 +388,7 @@ class Adapter extends \UniMapper\Adapter
 
         // Check if request failed
         if (isset($result->success) && $result->success === "false") {
-            throw new \Exception($result->message, $request);
+            throw new Exception($result->message, $request);
         }
 
         if (\UniMapper\Validator::isTraversable($result)) {
@@ -437,7 +437,7 @@ class Adapter extends \UniMapper\Adapter
                 $message = "Error during PUT to Flexibee";
             }
 
-            throw new \Exception($message, $request);
+            throw new Exception($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -469,14 +469,14 @@ class Adapter extends \UniMapper\Adapter
             }
 
             if (isset($error)) {
-                throw new \Exception("Flexibee error: {$error}");
+                throw new Exception("Flexibee error: {$error}");
             }
 
             if (isset($response->body->message)) {
-                throw new \Exception("Flexibee error: " . $response->body->message, $request);
+                throw new Exception("Flexibee error: " . $response->body->message, $request);
             }
 
-            throw new \Exception("An unknown flexibee error occurred", $request);
+            throw new Exception("An unknown flexibee error occurred", $request);
         }
 
         return $response->body;
