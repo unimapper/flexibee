@@ -2,18 +2,17 @@
 
 namespace UniMapper\Flexibee\Adapter;
 
-use UniMapper\Reflection,
-    UniMapper\Association;
+use UniMapper\Reflection;
 
 class Mapping extends \UniMapper\Adapter\Mapping
 {
 
     const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
 
-    public function mapValue(Reflection\Entity\Property $property, $value)
+    public function mapValue(Reflection\Property $property, $value)
     {
         if ($property->isAssociation()
-            && $property->getAssociation() instanceof Association\ManyToOne
+            && $property->getAssociation() instanceof Reflection\Association\ManyToOne
             && !empty($value)
         ) {
             return $value[0];
@@ -22,7 +21,7 @@ class Mapping extends \UniMapper\Adapter\Mapping
         return $value;
     }
 
-    public function unmapValue(Reflection\Entity\Property $property, $value)
+    public function unmapValue(Reflection\Property $property, $value)
     {
         if ($value === null) {
             return "";

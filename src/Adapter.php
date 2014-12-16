@@ -3,7 +3,7 @@
 namespace UniMapper\Flexibee;
 
 use Httpful\Request,
-    UniMapper\Association,
+    UniMapper\Reflection\Association,
     UniMapper\Adapter\IQuery;
 
 class Adapter extends \UniMapper\Adapter
