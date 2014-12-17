@@ -179,7 +179,9 @@ class Query implements \UniMapper\Adapter\IQuery
                 // Logical values and compare
                 if (in_array($operator, ["=", "<", ">", "<>", ">=", "<=", "IS", "IS NOT", "!="], true)) {
 
-                    if ($value === "''") {
+                    if (is_bool($value)) {
+                        $value = $value === true ? 'true' : 'false';
+                    } elseif ($value === "''") {
                         $value = "empty";
                     } elseif ($value === null) {
                         $value = "null";
