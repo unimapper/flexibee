@@ -2,7 +2,7 @@
 
 namespace UniMapper\Flexibee;
 
-use UniMapper\Association;
+use UniMapper\Reflection\Association;
 
 class Query implements \UniMapper\Adapter\IQuery
 {

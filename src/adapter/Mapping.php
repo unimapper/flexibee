@@ -12,7 +12,7 @@ class Mapping extends \UniMapper\Adapter\Mapping
     public function mapValue(Reflection\Property $property, $value)
     {
         if ($property->hasOption(Reflection\Property::OPTION_ASSOC)
-            && $property>getOption(Reflection\Property::OPTION_ASSOC) instanceof Reflection\Association\ManyToOne
+            && $property->getOption(Reflection\Property::OPTION_ASSOC) instanceof Reflection\Association\ManyToOne
             && !empty($value)
         ) {
             return $value[0];
