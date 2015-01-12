@@ -44,7 +44,7 @@ class Query implements \UniMapper\Adapter\IQuery
                 if ($association->getJoinKey() === "vazby") {
 
                     $this->relations[] = "vazby";
-                    $this->includes[] = "/winstrom/" . $this->evidence . "/vazby/vazba/" . $association->getReferenceKey();
+                    $this->includes[] = "/winstrom/" . $this->evidence . "/vazby/vazba/" . $association->getReferencingKey();
                 } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
 
                     $this->relations[] = "uzivatelske-vazby";
@@ -55,17 +55,17 @@ class Query implements \UniMapper\Adapter\IQuery
             } elseif ($association instanceof Association\ManyToOne) {
                 // N:1
 
-                $this->includes[] = "/" . $this->evidence . "/" . $association->getReferenceKey();
-                $this->relations[] = $association->getReferenceKey(); // Due to attachments
+                $this->includes[] = "/" . $this->evidence . "/" . $association->getReferencingKey();
+                $this->relations[] = $association->getReferencingKey(); // Due to attachments
             } elseif ($association instanceof Association\OneToOne) {
                 // 1:1
 
-                $this->includes[] = "/" . $this->evidence . "/" . $association->getForeignKey();
-                $this->relations[] = $association->getForeignKey(); // Due to attachments
+                $this->includes[] = "/" . $this->evidence . "/" . $association->getReferencingKey();
+                $this->relations[] = $association->getReferencingKey(); // Due to attachments
             } else {
                 throw new \Exception("Unsupported association " . get_class($association) . "!");
             }
-            $this->associations[] = $association;           
+            $this->associations[] = $association;
         }
     }
 

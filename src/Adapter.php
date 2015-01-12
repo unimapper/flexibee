@@ -3,7 +3,7 @@
 namespace UniMapper\Flexibee;
 
 use Httpful\Request,
-    UniMapper\Reflection\Association,
+    UniMapper\Association,
     UniMapper\Adapter\IQuery;
 
 class Adapter extends \UniMapper\Adapter
@@ -77,7 +77,7 @@ class Adapter extends \UniMapper\Adapter
                             foreach ($item->vazby as $relation) {
 
                                 if ($relation->typVazbyK === $association->getJoinResource()) { // eg. typVazbyDokl.obchod_zaloha_hla
-                                    $result[$index]->{$association->getPropertyName()}[] = $relation->{$association->getReferenceKey()}[0];// 'a' or 'b'
+                                    $result[$index]->{$association->getPropertyName()}[] = $relation->{$association->getReferencingKey()}[0];// 'a' or 'b'
                                 }
                             }
                         } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
@@ -92,11 +92,11 @@ class Adapter extends \UniMapper\Adapter
                     } elseif ($association instanceof Association\OneToOne) {
                         // 1:1
 
-                        $result[$index]->{$association->getPropertyName()} = $item->{$association->getForeignKey()};
+                        $result[$index]->{$association->getPropertyName()} = $item->{$association->getReferencingKey()};
                     } elseif ($association instanceof Association\ManyToOne ) {
                         // N:1
 
-                        $result[$index]->{$association->getPropertyName()} = $item->{$association->getReferenceKey()};
+                        $result[$index]->{$association->getPropertyName()} = $item->{$association->getReferencingKey()};
                     }
                 }
             }
@@ -153,7 +153,7 @@ class Adapter extends \UniMapper\Adapter
                             foreach ($item->vazby as $relation) {
 
                                 if ($relation->typVazbyK === $association->getJoinResource()) { // eg. typVazbyDokl.obchod_zaloha_hla
-                                    $result[$index]->{$propertyName}[] = $relation->{$association->getReferenceKey()}[0];// 'a' or 'b'
+                                    $result[$index]->{$propertyName}[] = $relation->{$association->getReferencingKey()}[0];// 'a' or 'b'
                                 }
                             }
                         } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
@@ -168,11 +168,11 @@ class Adapter extends \UniMapper\Adapter
                     } elseif ($association instanceof Association\OneToOne) {
                         // 1:1
 
-                        $result[$index]->{$propertyName} = $item->{$association->getForeignKey()};
+                        $result[$index]->{$propertyName} = $item->{$association->getReferencingKey()};
                     } elseif ($association instanceof Association\ManyToOne) {
                         // N:1
 
-                        $result[$index]->{$propertyName} = $item->{$association->getReferenceKey()};
+                        $result[$index]->{$propertyName} = $item->{$association->getReferencingKey()};
                     }
                 }
             }
