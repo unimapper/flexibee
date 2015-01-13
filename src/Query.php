@@ -128,8 +128,8 @@ class Query implements \UniMapper\Adapter\IQuery
                     $value = explode(",", $value);
                 }
 
-                // Compare
-                if ($operator === "COMPARE") {
+                if ($operator === "LIKE") {
+                    // LIKE
 
                     $leftPercent = $rightPercent = false;
 
@@ -148,22 +148,24 @@ class Query implements \UniMapper\Adapter\IQuery
                     } elseif ($leftPercent && !$rightPercent) {
                         $operator = "ENDS";
                     } else {
-                        $operator = "LIKE SIMILAR";
+                        $operator = "LIKE";
+                    }
+
+                    if (Adapter::$likeWithSimilar) {
+                        $operator .= " SIMILAR";
                     }
 
                     $formated = $name . " " . $operator . " '" . $value . "'";
-                }
-
-                if ($operator === "NOT IN") {
+                } elseif ($operator === "NOT IN") {
+                    // NOT IN
 
                     foreach ($value as $index => $item) {
                         $value[$index] = $name . " != '" .  $item . "'";
                     }
 
                     $formated = "(" . implode(" AND ", $value) . ")";
-                }
-
-                if ($operator === "IN") {
+                } elseif ($operator === "IN") {
+                    // IN
 
                     if ($name === "stitky") {
 
@@ -174,10 +176,8 @@ class Query implements \UniMapper\Adapter\IQuery
                     } else {
                         $formated = $name . " IN ('" . implode("','", $value) . "')";
                     }
-                }
-
-                // Logical values and compare
-                if (in_array($operator, ["=", "<", ">", "<>", ">=", "<=", "IS", "IS NOT", "!="], true)) {
+                } else {
+                    // Others
 
                     if (is_bool($value)) {
                         $value = $value === true ? 'true' : 'false';

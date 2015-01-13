@@ -9,6 +9,9 @@ use Httpful\Request,
 class Adapter extends \UniMapper\Adapter
 {
 
+    /** @var bool */
+    public static $likeWithSimilar = true;
+
     /** @var string */
     private $baseUrl;
 
