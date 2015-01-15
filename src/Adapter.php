@@ -2,9 +2,10 @@
 
 namespace UniMapper\Flexibee;
 
-use Httpful\Request,
-    UniMapper\Association,
-    UniMapper\Adapter\IQuery;
+use Httpful\Request;
+use UniMapper\Association;
+use UniMapper\Adapter\IQuery;
+use UniMapper\Exception;
 
 class Adapter extends \UniMapper\Adapter
 {
@@ -200,7 +201,7 @@ class Adapter extends \UniMapper\Adapter
     public function createModifyManyToMany(Association\ManyToMany $association, $primaryValue, array $refKeys, $action = self::ASSOC_ADD)
     {
         if ($association->getJoinKey() !== "uzivatelske-vazby") {
-            throw new \UniMapper\Exception\AdapterException("Only custom relations can be modified!");
+            throw new \Exception("Only custom relations can be modified!");
         }
 
         if ($action === self::ASSOC_ADD) {
@@ -224,7 +225,7 @@ class Adapter extends \UniMapper\Adapter
                 $values
             );
         } elseif ($action === self::ASSOC_REMOVE) {
-            throw new \UniMapper\Exception\AdapterException(
+            throw new \Exception(
                 "Custom relation delete not implemented!"
             );
         }
@@ -366,7 +367,7 @@ class Adapter extends \UniMapper\Adapter
      */
     public function get($url)
     {
-        $url = $this->baseUrl . "/" . $url;
+        $url = $this->baseUrl . "/f" . $url;
         Request::ini($this->template);
         $request = Request::get($url);
         $response = $request->send();
@@ -380,7 +381,7 @@ class Adapter extends \UniMapper\Adapter
                 $message = "Error during GET from Flexibee" .
                     " (" . $url . ")";
             }
-            throw new Exception($message, $request);
+            throw new Exception\AdapterException($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -391,7 +392,7 @@ class Adapter extends \UniMapper\Adapter
 
         // Check if request failed
         if (isset($result->success) && $result->success === "false") {
-            throw new Exception($result->message, $request);
+            throw new Exception\AdapterException($result->message, $request);
         }
 
         if (\UniMapper\Validator::isTraversable($result)) {
@@ -440,7 +441,7 @@ class Adapter extends \UniMapper\Adapter
                 $message = "Error during PUT to Flexibee";
             }
 
-            throw new Exception($message, $request);
+            throw new Exception\AdapterException($message, $request);
         }
 
         if (isset($response->body->winstrom)) {
@@ -472,14 +473,14 @@ class Adapter extends \UniMapper\Adapter
             }
 
             if (isset($error)) {
-                throw new Exception("Flexibee error: {$error}");
+                throw new Exception\AdapterException("Flexibee error: {$error}", $request);
             }
 
             if (isset($response->body->message)) {
-                throw new Exception("Flexibee error: " . $response->body->message, $request);
+                throw new Exception\AdapterException("Flexibee error: " . $response->body->message, $request);
             }
 
-            throw new Exception("An unknown flexibee error occurred", $request);
+            throw new Exception\AdapterException("An unknown flexibee error occurred!", $request);
         }
 
         return $response->body;
