@@ -367,7 +367,7 @@ class Adapter extends \UniMapper\Adapter
      */
     public function get($url)
     {
-        $url = $this->baseUrl . "/f" . $url;
+        $url = $this->baseUrl . "/" . $url;
         Request::ini($this->template);
         $request = Request::get($url);
         $response = $request->send();
