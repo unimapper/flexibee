@@ -27,7 +27,7 @@ class Adapter extends \UniMapper\Adapter
 
         if (isset($config["user"])) {
             $this->template->authenticateWith($config["user"], $config["password"])
-                ->addOnCurlOption(CURLOPT_SSLVERSION, 3)
+                ->addOnCurlOption(CURLOPT_SSLVERSION, 1)
                 ->withoutStrictSSL()
                 ->followRedirects(true);
         }
