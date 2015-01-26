@@ -11,10 +11,16 @@ Flexibee API integration with [UniMapper](http://unimapper.github.io).
 
 ```php
 $config = [
-    "host" =>
-    "company" =>
-    "user" =>
-    "password" =>
+    // Required
+    "host" => "http://localhost:5434"
+    "company" => "name"
+
+    // Optional authentization
+    "user" => ,
+    "password" => ,
+
+    // Optional SSL version
+    "ssl_version" => 3
 ];
 $adapter = new UniMapper\Flexibee\Adapter($config);
 

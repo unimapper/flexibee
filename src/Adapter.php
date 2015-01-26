@@ -26,10 +26,20 @@ class Adapter extends \UniMapper\Adapter
         $this->template = Request::init();
 
         if (isset($config["user"])) {
+
+            // Set authentication
             $this->template->authenticateWith($config["user"], $config["password"])
-                ->addOnCurlOption(CURLOPT_SSLVERSION, 1)
                 ->withoutStrictSSL()
                 ->followRedirects(true);
+
+            // Set SSL version
+            if (isset($config["ssl_version"])) {
+
+              $this->template->addOnCurlOption(
+                  CURLOPT_SSLVERSION,
+                  (int) $config["ssl_version"]
+              );
+            }
         }
     }
 
