@@ -35,10 +35,10 @@ class Adapter extends \UniMapper\Adapter
             // Set SSL version
             if (isset($config["ssl_version"])) {
 
-              $this->template->addOnCurlOption(
-                  CURLOPT_SSLVERSION,
-                  (int) $config["ssl_version"]
-              );
+                $this->template->addOnCurlOption(
+                    CURLOPT_SSLVERSION,
+                    (int) $config["ssl_version"]
+                );
             }
         }
     }
