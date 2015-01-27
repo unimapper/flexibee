@@ -2,7 +2,6 @@
 
 namespace UniMapper\Flexibee;
 
-use Httpful\Request;
 use UniMapper\Association;
 use UniMapper\Adapter\IQuery;
 use UniMapper\Exception;
@@ -10,42 +9,142 @@ use UniMapper\Exception;
 class Adapter extends \UniMapper\Adapter
 {
 
+    const CONTENT_JSON = "application/json";
+    const CONTENT_XML = "application/xml";
+
+    const METHOD_GET = "get";
+    const METHOD_PUT = "put";
+    const METHOD_POST = "post";
+    const METHOD_DELETE = "delete";
+
     /** @var bool */
     public static $likeWithSimilar = true;
+    public static $codeAsId = true;
 
     /** @var string */
     private $baseUrl;
 
-    /** @var \Httpful\Request $template Request template */
-    private $template;
+    /** @var string */
+    private $user;
+
+    /** @var string */
+    private $password;
+
+    /** @var integer */
+    private $sslVersion;
+
+    /** @var string */
+    private $authUser;
 
     public function __construct(array $config)
     {
         parent::__construct(new Adapter\Mapping);
+
         $this->baseUrl = $config["host"] . "/c/" . $config["company"];
-        $this->template = Request::init();
+        $this->sslVersion = isset($config["ssl_version"]) ? (int) $config["ssl_version"] : null;
+        $this->user = isset($config["user"]) ? $config["user"] : null;
+        if ($this->user !== null) {
 
-        if (isset($config["user"])) {
-
-            // Set authentication
-            $this->template->authenticateWith($config["user"], $config["password"])
-                ->withoutStrictSSL()
-                ->followRedirects(true);
-
-            // Set SSL version
-            if (isset($config["ssl_version"])) {
-
-                $this->template->addOnCurlOption(
-                    CURLOPT_SSLVERSION,
-                    (int) $config["ssl_version"]
-                );
+            if (isset($config["password"])) {
+                $this->password =  $config["password"];
+            } else {
+                throw new \Exception("Password is required if user set!");
             }
         }
     }
 
-    public function setAuthUser($username)
+    protected function send(
+        $url,
+        $method = self::METHOD_GET,
+        $contentType = self::CONTENT_JSON,
+        $content = null,
+        array $headers = []
+    ) {
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+        curl_setopt($ch, CURLOPT_HTTPAUTH, TRUE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+        if ($this->sslVersion !== null) {
+            curl_setopt($ch, CURLOPT_SSLVERSION, $this->sslVersion);
+        }
+
+        // Authentization
+        if ($this->user !== null) {
+            curl_setopt($ch, CURLOPT_USERPWD, $this->user . ":" . $this->password);
+        }
+
+        // Set content type
+        $headers[] = "Content-type: " . $contentType;
+
+        // Set content
+        if ($content) {
+
+            if ($contentType === self::CONTENT_JSON) {
+                $content = json_encode(["winstrom" => $content]);
+            }
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+        }
+
+        // Authorization
+        if ($this->authUser !== null) {
+            $headers[] = "X-FlexiBee-Authorization: " . $this->authUser;
+        }
+
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $this->baseUrl . "/" . $url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            throw new Exception\AdapterException(curl_error($ch), curl_getinfo($ch));
+        }
+
+        // Parse response
+        switch ($contentType) {
+            case self::CONTENT_JSON:
+                $response = json_decode($response);
+                break;
+            case self::CONTENT_XML:
+                $response = simplexml_load_string($response);
+                break;
+        }
+
+        // Get response body root automatically
+        if (isset($response->winstrom)) {
+            $response = $response->winstrom;
+        }
+
+        // Detect errors in result
+        if (curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200
+            && curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 201
+        ) {
+
+            if (isset($response->results[0]->errors[0])) {
+                $message = "Flexibee errors: " . json_encode($response->results[0]->errors);
+            } elseif (isset($response->message)) {
+                $message = $response->message;
+            } else {
+                $message = "An unknown Flexibee PUT error occurred!";
+            }
+
+            throw new Exception\AdapterException($message, curl_getinfo($ch), $response);
+        }
+
+        curl_close($ch);
+
+        return $response;
+    }
+
+    public function setAuthUser($name)
     {
-        $this->template->addHeader("X-FlexiBee-Authorization", $username);
+        $this->authUser = (string) $name;
     }
 
     public function createDelete($evidence)
@@ -312,11 +411,6 @@ class Adapter extends \UniMapper\Adapter
         return $result;
     }
 
-    public function getConnection()
-    {
-        return $this->connection;
-    }
-
     /**
      * Escape properties with @ char (polozky@removeAll), @showAs, @ref ...
      *
@@ -356,56 +450,24 @@ class Adapter extends \UniMapper\Adapter
 
     public function delete($url)
     {
-        $url = $this->baseUrl . "/" . $url;
-        Request::ini($this->template);
-        $request = Request::delete($url);
-        $response = $request->send();
-
-        if ($response->code !== 200) {
-            return false;
-        }
+        $this->send($url, self::METHOD_DELETE);
         return true;
     }
 
     /**
      * Send request and get data from response
      *
-     * @param string $url URL
+     * @param string $url
+     * @param string $contentType
      *
-     * @return \stdClass|\SimpleXMLElement Output format depends on selected
-     *                                     format in URL.
+     * @return mixed
      */
-    public function get($url)
+    public function get($url, $contentType = self::CONTENT_JSON)
     {
-        $url = $this->baseUrl . "/" . $url;
-        Request::ini($this->template);
-        $request = Request::get($url);
-        $response = $request->send();
+        $result = $this->send($url, self::METHOD_GET, $contentType);
 
-        if ($response->hasErrors()) {
-            if (isset($response->body->winstrom->message)) {
-                $message = "Error during GET from Flexibee: " .
-                    $response->body->winstrom->message .
-                    " (" . $url . ")";
-            } else {
-                $message = "Error during GET from Flexibee" .
-                    " (" . $url . ")";
-            }
-            throw new Exception\AdapterException($message, $request);
-        }
-
-        if (isset($response->body->winstrom)) {
-            $result = $response->body->winstrom;
-        } else {
-            $result = $response->body;
-        }
-
-        // Check if request failed
-        if (isset($result->success) && $result->success === "false") {
-            throw new Exception\AdapterException($result->message, $request);
-        }
-
-        if (\UniMapper\Validator::isTraversable($result)) {
+        // Replace id with code if enabled
+        if (self::$codeAsId && (is_array($result) || is_object($result))) {
 
             foreach ($result as $name => $value) {
 
@@ -424,76 +486,31 @@ class Adapter extends \UniMapper\Adapter
     }
 
     /**
-     * Send request as PUT and return response
+     * Sends PUT request
      *
-     * @param string $url     URL
-     * @param string $payload Request
+     * @param string $url         URL
+     * @param string $content     Request body
+     * @param string $contentType
+     * @param array  $headers
      *
-     * @return string
+     * @return mixed
      */
-    public function put($url, $payload, $contentType = "application/json")
+    public function put($url, $content, $contentType = self::CONTENT_JSON, array $headers = [])
     {
-        $url = $this->baseUrl . "/" . $url;
-        Request::ini($this->template);
+        return $this->send($url, self::METHOD_PUT, $contentType, $content, $headers);
+    }
 
-        if ($contentType === "application/json") {
-            $payload = json_encode(array("flexibee" => $payload));
-        }
-
-        $request = Request::put($url, $payload, $contentType);
-        $response = $request->send();
-
-        if ($response->hasErrors()) {
-            preg_match('/.*\"message\":\"(.*)\".*/i', $response->raw_body, $errors);
-            if (isset($errors[1])) {
-                $message = "Error during PUT to Flexibee: " . $errors[1];
-            } else {
-                $message = "Error during PUT to Flexibee";
-            }
-
-            throw new Exception\AdapterException($message, $request);
-        }
-
-        if (isset($response->body->winstrom)) {
-            return $response->body->winstrom;
-        }
-
-        // Check if request failed
-        if (isset($response->body->success)
-            && $response->body->success === "false"
-        ) {
-
-            if (isset($response->body->results[0]->errors[0])) {
-
-                $errorDetails = $response->body->results[0]->errors[0];
-                $error = "";
-
-                if (isset($errorDetails->message)) {
-                    $error .= " MESSAGE: {$errorDetails->message}";
-                }
-                if (isset($errorDetails->for)) {
-                    $error .= " FOR: {$errorDetails->for}";
-                }
-                if (isset($errorDetails->value)) {
-                    $error .= " VALUE: {$errorDetails->value}";
-                }
-                if (isset($errorDetails->code)) {
-                    $error .= " CODE: {$errorDetails->code}";
-                }
-            }
-
-            if (isset($error)) {
-                throw new Exception\AdapterException("Flexibee error: {$error}", $request);
-            }
-
-            if (isset($response->body->message)) {
-                throw new Exception\AdapterException("Flexibee error: " . $response->body->message, $request);
-            }
-
-            throw new Exception\AdapterException("An unknown flexibee error occurred!", $request);
-        }
-
-        return $response->body;
+    /**
+     * Sends POST request
+     *
+     * @param type $url
+     * @param type $content
+     * @param type $contentType
+     * @param array $headers
+     */
+    public function post($url, $content, $contentType, array $headers = [])
+    {
+        return $this->send($url, self::METHOD_POST, $contentType, $content, $headers);
     }
 
     /**
