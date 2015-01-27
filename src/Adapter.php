@@ -62,11 +62,11 @@ class Adapter extends \UniMapper\Adapter
     ) {
         $ch = curl_init();
 
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
-        curl_setopt($ch, CURLOPT_HTTPAUTH, TRUE);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HTTPAUTH, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         if ($this->sslVersion !== null) {
             curl_setopt($ch, CURLOPT_SSLVERSION, $this->sslVersion);
         }
@@ -108,12 +108,12 @@ class Adapter extends \UniMapper\Adapter
 
         // Parse response
         switch ($contentType) {
-            case self::CONTENT_JSON:
-                $response = json_decode($response);
-                break;
-            case self::CONTENT_XML:
-                $response = simplexml_load_string($response);
-                break;
+        case self::CONTENT_JSON:
+            $response = json_decode($response);
+            break;
+        case self::CONTENT_XML:
+            $response = simplexml_load_string($response);
+            break;
         }
 
         // Get response body root automatically
