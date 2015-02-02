@@ -133,7 +133,7 @@ class Adapter extends \UniMapper\Adapter
             } else {
                 $message = "An unknown Flexibee error occurred!";
             }
-var_dump(curl_getinfo($ch, CURLINFO_HTTP_CODE));
+
             throw new Exception\AdapterException($message, curl_getinfo($ch), $response);
         }
 
