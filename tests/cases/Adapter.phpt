@@ -4,19 +4,18 @@ use Tester\Assert;
 
 require __DIR__ . '/../bootstrap.php';
 
+/**
+ * @testCase
+ */
 class AdapterTest extends Tester\TestCase
 {
-
-    /** @var \Mockery\Mock $connectionMock */
-    private $connectionMock;
 
     /** @var \UniMapper\Flexibee\Adapter $adapter */
     private $adapter;
 
     public function setUp()
     {
-        $this->connectionMock = Mockery::mock("UniMapper\Flexibee\Connection");
-        $this->adapter = new UniMapper\Flexibee\Adapter(["host" => null, "company" => null]);
+        $this->adapter = new UniMapper\Flexibee\Adapter(["host" => "http://localhost:8000", "company" => "testCompany"]);
     }
 
     public function testCreateDelete()
