@@ -131,9 +131,9 @@ class Adapter extends \UniMapper\Adapter
             } elseif (isset($response->message)) {
                 $message = $response->message;
             } else {
-                $message = "An unknown Flexibee PUT error occurred!";
+                $message = "An unknown Flexibee error occurred!";
             }
-
+var_dump(curl_getinfo($ch, CURLINFO_HTTP_CODE));
             throw new Exception\AdapterException($message, curl_getinfo($ch), $response);
         }
 
@@ -467,7 +467,11 @@ class Adapter extends \UniMapper\Adapter
         $result = $this->send($url, self::METHOD_GET, $contentType);
 
         // Replace id with code if enabled
-        if (self::$codeAsId && (is_array($result) || is_object($result))) {
+        if ($contentType === self::CONTENT_JSON
+            && self::$codeAsId
+            && (is_array($result)
+            || is_object($result))
+        ) {
 
             foreach ($result as $name => $value) {
 
