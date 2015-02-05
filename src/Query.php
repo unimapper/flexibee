@@ -124,6 +124,10 @@ class Query implements \UniMapper\Adapter\IQuery
 
                 list($name, $operator, $value, $joiner) = $condition;
 
+                if ($name === "stitky") {
+                    $value = explode(",", $value);
+                }
+
                 if ($operator === "LIKE") {
                     // LIKE
 
@@ -181,8 +185,13 @@ class Query implements \UniMapper\Adapter\IQuery
                         $value = "empty";
                     } elseif ($value === null) {
                         $value = "null";
-                    } elseif (in_array($operator, ["IS", "IS NOT"], true) && is_bool($value)) {
-                        $value = var_export($value, true);
+                    } elseif (in_array($operator, ["IS", "IS NOT"], true)) {
+
+                        if (is_bool($value)) {
+                            $value = var_export($value, true);
+                        } elseif ($value === null || $value === "") {
+                            $value = "NULL";
+                        }
                     } else {
                         $value = "'" . $value . "'";
                     }

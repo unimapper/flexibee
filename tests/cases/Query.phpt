@@ -18,8 +18,9 @@ class QueryTest extends Tester\TestCase
                         ["isTrue", "IS", true, "AND"],
                         ["isFalse", "IS", false, "AND"],
                         ["null", "IS", null, "AND"],
+                        ["nullString", "IS", "", "AND"],
                         ["id", "NOT IN", [3, 4], "OR"],
-                        ["stitky", "IN", ["stitek1", "stitek2"], "OR"],
+                        ["stitky", "IN", "stitek1,stitek2", "OR"],
                         [
                             [
                                 ["similar", "LIKE", "%foo%", "AND"],
