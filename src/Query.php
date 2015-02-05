@@ -124,10 +124,6 @@ class Query implements \UniMapper\Adapter\IQuery
 
                 list($name, $operator, $value, $joiner) = $condition;
 
-                if ($name === "stitky") {
-                    $value = explode(",", $value);
-                }
-
                 if ($operator === "LIKE") {
                     // LIKE
 
