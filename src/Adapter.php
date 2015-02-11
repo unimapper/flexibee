@@ -127,7 +127,7 @@ class Adapter extends \UniMapper\Adapter
         ) {
 
             if (isset($response->results[0]->errors[0])) {
-                $message = "Flexibee errors: " . json_encode($response->results[0]->errors);
+                $message = "Flexibee errors: " . json_encode($response->results[0]->errors, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             } elseif (isset($response->message)) {
                 $message = $response->message;
             } else {
