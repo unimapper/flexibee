@@ -101,7 +101,7 @@ class Adapter extends \UniMapper\Adapter
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
         $response = curl_exec($ch);
-
+dump( $response);
         if ($response === false) {
             throw new Exception\AdapterException(curl_error($ch), curl_getinfo($ch));
         }
@@ -149,7 +149,7 @@ class Adapter extends \UniMapper\Adapter
 
     public function createDelete($evidence)
     {
-        $query = new Query($evidence, Query::PUT, ["@action" => "delete"]);
+        $query = new Query($evidence, Query::PUT, [$evidence => ["@action" => "delete"]]);
         $query->resultCallback = function ($result) {
             return (int) $result->stats->deleted;
         };
