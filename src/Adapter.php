@@ -101,7 +101,7 @@ class Adapter extends \UniMapper\Adapter
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
         $response = curl_exec($ch);
-dump( $response);
+
         if ($response === false) {
             throw new Exception\AdapterException(curl_error($ch), curl_getinfo($ch));
         }
