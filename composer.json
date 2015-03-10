@@ -18,9 +18,9 @@
         "bauer01/unimapper": "@dev",
         "nette/tester": "~1.3.0",
         "mockery/mockery": "~0.9.0",
-        "squizlabs/php_codesniffer": "~1.5.0"
+        "squizlabs/php_codesniffer": "~2.0"
     },
     "autoload": {
-            "classmap": ["src/"]
+         "psr-4": {"UniMapper\\Flexibee\\": "src/"}
     }
 }
