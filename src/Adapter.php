@@ -4,7 +4,6 @@ namespace UniMapper\Flexibee;
 
 use UniMapper\Association;
 use UniMapper\Adapter\IQuery;
-use UniMapper\Exception;
 
 class Adapter extends \UniMapper\Adapter
 {
@@ -125,16 +124,11 @@ class Adapter extends \UniMapper\Adapter
         if (curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200
             && curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 201
         ) {
-
-            if (isset($response->results[0]->errors[0])) {
-                $message = "Flexibee errors: " . json_encode($response->results[0]->errors, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            } elseif (isset($response->message)) {
-                $message = $response->message;
-            } else {
-                $message = "An unknown Flexibee error occurred!";
-            }
-
-            throw new Exception\AdapterException($message, curl_getinfo($ch), $response);
+            throw new Exception\AdapterException(
+                "An unknown Flexibee error occurred!",
+                curl_getinfo($ch),
+                $response
+            );
         }
 
         curl_close($ch);
@@ -344,10 +338,11 @@ class Adapter extends \UniMapper\Adapter
 
     public function createInsert($evidence, array $values)
     {
+        $values["@update"] = "fail";
         $query = new Query(
             $evidence,
             Query::PUT,
-            ["@update" => "fail", $evidence => $values]
+            [$evidence => $values]
         );
         $query->resultCallback = function ($result) {
 
@@ -365,10 +360,11 @@ class Adapter extends \UniMapper\Adapter
 
     public function createUpdate($evidence, array $values)
     {
+        $values["@create"] = "fail";
         $query = new Query(
             $evidence,
             Query::PUT,
-            ["@create" => "fail", $evidence => $values]
+            [$evidence => $values]
         );
         $query->resultCallback = function ($result) {
             return (int) $result->stats->updated;
