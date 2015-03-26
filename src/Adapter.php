@@ -338,10 +338,11 @@ class Adapter extends \UniMapper\Adapter
 
     public function createInsert($evidence, array $values)
     {
+        $values["@update"] = "fail";
         $query = new Query(
             $evidence,
             Query::PUT,
-            ["@update" => "fail", $evidence => $values]
+            [$evidence => $values]
         );
         $query->resultCallback = function ($result) {
 
@@ -359,10 +360,11 @@ class Adapter extends \UniMapper\Adapter
 
     public function createUpdate($evidence, array $values)
     {
+        $values["@create"] = "fail";
         $query = new Query(
             $evidence,
             Query::PUT,
-            ["@create" => "fail", $evidence => $values]
+            [$evidence => $values]
         );
         $query->resultCallback = function ($result) {
             return (int) $result->stats->updated;
