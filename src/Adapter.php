@@ -338,7 +338,15 @@ class Adapter extends \UniMapper\Adapter
 
     public function createInsert($evidence, array $values)
     {
-        $values["@update"] = "fail";
+        // Support for multi-insert
+        if ($values === array_values($values)) {
+            foreach ($values as $index => $value) {
+                $values[$index]["@update"] = "fail";
+            }
+        } else {
+            $values["@update"] = "fail";
+        }
+
         $query = new Query(
             $evidence,
             Query::PUT,
@@ -360,7 +368,15 @@ class Adapter extends \UniMapper\Adapter
 
     public function createUpdate($evidence, array $values)
     {
-        $values["@create"] = "fail";
+        // Support for multi-update
+        if ($values === array_values($values)) {
+            foreach ($values as $index => $value) {
+                $values[$index]["@create"] = "fail";
+            }
+        } else {
+            $values["@create"] = "fail";
+        }
+
         $query = new Query(
             $evidence,
             Query::PUT,
