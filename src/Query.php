@@ -62,6 +62,10 @@ class Query implements \UniMapper\Adapter\IQuery
 
                 $this->includes[] = "/" . $this->evidence . "/" . $association->getReferencingKey();
                 $this->relations[] = $association->getReferencingKey(); // Due to attachments
+            } elseif ($association instanceof Association\OneToMany) {
+                // 1:N
+
+                $this->relations[] = $association->getReferencedKey();
             } else {
                 throw new \Exception("Unsupported association " . get_class($association) . "!");
             }

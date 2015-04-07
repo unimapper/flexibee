@@ -204,6 +204,10 @@ class Adapter extends \UniMapper\Adapter
                         // N:1
 
                         $result[$index]->{$association->getPropertyName()} = $item->{$association->getReferencingKey()};
+                    } elseif ($association instanceof Association\OneToMany) {
+                        // 1:N
+
+                        $result[$index]->{$propertyName} = $item->{$association->getReferencedKey()};
                     }
                 }
             }
@@ -280,6 +284,10 @@ class Adapter extends \UniMapper\Adapter
                         // N:1
 
                         $result[$index]->{$propertyName} = $item->{$association->getReferencingKey()};
+                    } elseif ($association instanceof Association\OneToMany) {
+                        // 1:N
+
+                        $result[$index]->{$propertyName} = $item->{$association->getReferencedKey()};
                     }
                 }
             }
