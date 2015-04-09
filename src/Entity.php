@@ -8,25 +8,28 @@ abstract class Entity extends \UniMapper\Entity
     /**
      * Converts 'stitky' to an array
      *
-     * @param string $string
+     * @param string $value
      *
      * @return array
      */
-    public static function mapStitky($string)
+    public static function mapStitky($value)
     {
-        return $string ? array_map('trim', explode(',', $string)) : [];
+        return $value ? array_map("trim", explode(",", $value)) : [];
     }
 
     /**
      * Converts 'stitky' back to string
      *
-     * @param array $array
+     * @param array $value
      *
      * @return string
      */
-    public static function unmapStitky(array $array)
+    public static function unmapStitky($value)
     {
-        return $array ? implode(',', array_map('trim',$array)) : "";
+        if (is_array($value)) {
+            return $value ? implode(",", array_map("trim", $value)) : "";
+        }
+        return "";
     }
 
 }
