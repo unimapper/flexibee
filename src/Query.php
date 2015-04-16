@@ -159,7 +159,7 @@ class Query implements \UniMapper\Adapter\IQuery
                         $operator .= " SIMILAR";
                     }
 
-                    $formated = $name . " " . $operator . " '" . $value . "'";
+                    $value = "'" . $value . "'";
                 } elseif ($operator === "NOT IN") {
                     // NOT IN
 
@@ -167,7 +167,9 @@ class Query implements \UniMapper\Adapter\IQuery
                         $value[$index] = $name . " != '" .  $item . "'";
                     }
 
-                    $formated = "(" . implode(" AND ", $value) . ")";
+                    $value = "(" . implode(" AND ", $value) . ")";
+                    unset($operator);
+                    unset($name);
                 } elseif ($operator === "IN") {
                     // IN
 
@@ -176,32 +178,43 @@ class Query implements \UniMapper\Adapter\IQuery
                         foreach ($value as $index => $item) {
                             $value[$index] = $name . " = '" .  $item . "'";
                         }
-                        $formated = "(" . implode(" OR ", $value) . ")";
+                        $value = "(" . implode(" OR ", $value) . ")";
+                        unset($operator);
+                        unset($name);
                     } else {
-                        $formated = $name . " IN ('" . implode("','", $value) . "')";
+                        $value = "('" . implode("','", $value) . "')";
+                    }
+                } elseif ($operator === "IS" || $operator === "IS NOT") {
+                    // IS, IS NOT
+
+                    if (is_bool($value) && $operator === "IS NOT") {
+                        // Flexibee does not support IS NOT with bool values
+
+                        $operator = "IS";
+                        $value = !$value;
+                    } elseif ($value === null || $value === "") {
+                        $value = "NULL";
+                    } elseif ($value === "''" || $value === '""') {
+                        $value = "empty";
                     }
                 } else {
-                    // Others
-
-                    if (is_bool($value)) {
-                        $value = $value === true ? 'true' : 'false';
-                    } elseif ($value === "''") {
-                        $value = "empty";
-                    } elseif ($value === null) {
-                        $value = "null";
-                    } elseif (in_array($operator, ["IS", "IS NOT"], true)) {
-
-                        if (is_bool($value)) {
-                            $value = var_export($value, true);
-                        } elseif ($value === null || $value === "") {
-                            $value = "NULL";
-                        }
-                    } else {
-                        $value = "'" . $value . "'";
-                    }
-
-                    $formated = $name . " " . $operator . " " . $value;
+                    // Other operators
+                    $value = "'" . $value . "'";
                 }
+
+                if (is_bool($value)) {
+                    $value = var_export($value, true);
+                }
+
+                $formated = "";
+                if (isset($name)) {
+                    $formated .= $name . " ";
+                }
+                if (isset($operator)) {
+                    $formated .= $operator . " ";
+                }
+
+                $formated .= $value;
             }
 
             // Add joiner if not first condition
