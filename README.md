@@ -35,7 +35,7 @@ For more inromation see the docs on official [Flexibee](http://www.flexibee.eu) 
 
 # Příklady z praxe
 
-Takhle může být zadefinovaná evidence "objednavka-prijata" v plné kráse. Seznam všech lze najít například na https://demo.flexibee.eu/c/demo/evidence-list
+Takhle může být zadefinovaná evidence *objednavka-prijata* v plné kráse. Seznam všech lze najít například na https://demo.flexibee.eu/c/demo/evidence-list
 
 ## Entity
 ```
@@ -123,7 +123,7 @@ class Order extends \UniMapper\Flexibee\Entity
 - Pokud chcete načítat i externí identifikátory, lze ala příklad použít *$externalIds*.
 - Pomocí *m:assoc(M:N)* dokážete skoro kouzla. Například v *$advanceInvoices* budete mít rovnou kolekci navázaných zálohovek k této objednávce a v *$cashInvoices* kolekci navázaných faktur. Pokud byste to rovnou chtěli pohromadě v jedné kolekci (proformy i faktury), můžete využít další vychytávku Unimapperu a to je "computed" property.
 - Pomocí *m:computed* můžete zařídit, že jakmile k takové property přistoupíte, bude obsahovat přesně ten obsah, který potřebujete. V příkladu s tím souvisí metoda *computeInvoices()*.
-- Pokud upravujeme existující objednávku, je vhodné nastavit *$itemsRemoveAll* na TRUE a zároveň poslat všechny položky objednávky znovu (*$evidenceItems*). V opačném případě se nám budou s každou úpravou množit na objednávce položky (viz. dokumentace Flexibee).
+- Pokud upravujeme existující objednávku, je vhodné nastavit *$itemsRemoveAll* na *TRUE* a zároveň poslat všechny položky objednávky znovu (*$evidenceItems*). V opačném případě se nám budou s každou úpravou množit na objednávce položky (viz. dokumentace Flexibee).
 
 ## Repository
 Pokud pak máme repository zadefinovanou takto:
