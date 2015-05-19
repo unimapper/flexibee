@@ -113,17 +113,17 @@ class Order extends \UniMapper\Flexibee\Entity
 ```
 
 #### Doporučení
-- **Identifikátory (zde například ID objednávky, addressBookId, ...) definujte VŽDY typu string.** Unimapper preferuje textový identifikátor z Flexibee před číselným. Tj. pokud si necháme vylistovat objednávky z Flexibee, jako ID dorazí něco ve stylu "code:OBP0001/2015". Pokud Flexibee u dané evidence nedrží textový identifikátor, vrátí se číselný (avšak typově jako string).
-- Proměnné, které si Flexibee vypočítává samo (například suma za celou objednávku) a nebo je zakázáno je do Flexibee posílat (viz. dokumentace Flexibee) je vhodné označit jako @property-read. Unimapper pak nebude tyto property do Flexibee zapisovat, pouze je z Flexibee načte.
-- Pokud je v dokumentaci Flexibee proměnná definovaná jako "date", nastavte typ i zde na "Date". Nepoužívejte "DateTime", vyvarujete se problémů při filtraci záznamů dle datumu (např. vypiš všechny včerejší objednávky).
+- **Identifikátory (zde například ID objednávky, addressBookId, ...) definujte VŽDY typu string.** Unimapper preferuje textový identifikátor z Flexibee před číselným. Tj. pokud si necháme vylistovat objednávky z Flexibee, jako ID dorazí něco ve stylu *code:OBP0001/2015*. Pokud Flexibee u dané evidence nedrží textový identifikátor, vrátí se číselný (avšak typově jako string).
+- Proměnné, které si Flexibee vypočítává samo (například suma za celou objednávku) a nebo je zakázáno je do Flexibee posílat (viz. dokumentace Flexibee) je vhodné označit jako *@property-read*. Unimapper pak nebude tyto property do Flexibee zapisovat, pouze je z Flexibee načte.
+- Pokud je v dokumentaci Flexibee proměnná definovaná jako *date*, nastavte typ i zde na *Date*. Nepoužívejte *DateTime*, vyvarujete se problémů při filtraci záznamů dle datumu (např. vypiš všechny včerejší objednávky).
 
 #### Tipy
-- Díky "m:enum" lze hlídat hodnoty ve výčtových typech. Unimapper vyhodí výjimku, pokud se hodnota nenachází v datech, která se vrací z Flexibee / posílají do Flexibee.
-- Štítky (zde tags) si lze jednoduše převést do array pomocí m:map-filter(mapStitky|unmapStitky) a pak s nimi jednodušeji pracovat. Naopak při zápisu se z array vhodně přetransformují do podobi, kterou Flexibee akceptuje.
-- Pokud chcete načítat i externí identifikátory, lze ala příklad použít "$externalIds".
-- Pomocí "m:assoc(M:N)" dokážete skoro kouzla. Například v "$advanceInvoices" budete mít rovnou kolekci navázaných zálohovek k této objednávce a v "$cashInvoices" kolekci navázaných faktur. Pokud byste to rovnou chtěli pohromadě v jedné kolekci (proformy i faktury), můžete využít další vychytávku Unimapperu a to je "computed" property.
-- Pomocí "m:computed" můžete zařídit, že jakmile k takové property přistoupíte, bude obsahovat přesně ten obsah, který potřebujete. V příkladu s tím souvisí metoda computeInvoices().
-- Pokud upravujeme existující objednávku, je vhodné nastavit $itemsRemoveAll na TRUE a zároveň poslat všechny položky objednávky znovu ($evidenceItems). V opačném případě se nám budou s každou úpravou množit na objednávce položky (viz. dokumentace Flexibee).
+- Díky *m:enum* lze hlídat hodnoty ve výčtových typech. Unimapper vyhodí výjimku, pokud se hodnota nenachází v datech, která se vrací z Flexibee / posílají do Flexibee.
+- Štítky (zde tags) si lze jednoduše převést do array pomocí *m:map-filter(mapStitky|unmapStitky)* a pak s nimi jednodušeji pracovat. Naopak při zápisu se z array vhodně přetransformují do podobi, kterou Flexibee akceptuje.
+- Pokud chcete načítat i externí identifikátory, lze ala příklad použít *$externalIds*.
+- Pomocí *m:assoc(M:N)* dokážete skoro kouzla. Například v *$advanceInvoices* budete mít rovnou kolekci navázaných zálohovek k této objednávce a v *$cashInvoices* kolekci navázaných faktur. Pokud byste to rovnou chtěli pohromadě v jedné kolekci (proformy i faktury), můžete využít další vychytávku Unimapperu a to je "computed" property.
+- Pomocí *m:computed* můžete zařídit, že jakmile k takové property přistoupíte, bude obsahovat přesně ten obsah, který potřebujete. V příkladu s tím souvisí metoda *computeInvoices()*.
+- Pokud upravujeme existující objednávku, je vhodné nastavit *$itemsRemoveAll* na TRUE a zároveň poslat všechny položky objednávky znovu (*$evidenceItems*). V opačném případě se nám budou s každou úpravou množit na objednávce položky (viz. dokumentace Flexibee).
 
 ## Repository
 Pokud pak máme repository zadefinovanou takto:
@@ -168,7 +168,7 @@ public function getCancelReasons()
 }
 ```
 
-- Nevyhovuje standardní save()? Můžeme ji přetížit a udělat nějakou tu věc navíc. Tady třeba nastavit dnešní datum vzniku objednávky, pokud jde o novou objednávku (ID === null).
+- Nevyhovuje standardní *save()*? Můžeme ji přetížit a udělat nějakou tu věc navíc. Tady třeba nastavit dnešní datum vzniku objednávky, pokud jde o novou objednávku (*ID === null*).
 
 ```
 public function save(\UniMapper\Entity $order)
@@ -343,4 +343,4 @@ $this->orderRepository->save(
 );
 ```
 
-Takhle zajistíme, že Flexibee nebude celou objednávku přepočítávat (neboť v $order->evidenceItems budou i její položky! a že opravdu pouze změní status u definované objednávky (id).
+Takhle zajistíme, že Flexibee nebude celou objednávku přepočítávat (neboť v *$order->evidenceItems* budou i její položky! a že opravdu pouze změní status u definované objednávky (*id*).
