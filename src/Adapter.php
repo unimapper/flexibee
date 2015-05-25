@@ -164,9 +164,8 @@ class Adapter extends \UniMapper\Adapter
 
         $query->resultCallback = function ($result, Query $query) {
 
-            $result = $result->{$query->evidence};
-            if (count($result) === 0) {
-                return false;
+            if ($result === false) {
+                return $result;
             }
 
             // Merge associations results for mapping compatibility
@@ -484,7 +483,16 @@ class Adapter extends \UniMapper\Adapter
      */
     public function get($url, $contentType = self::CONTENT_JSON)
     {
-        $result = $this->send($url, self::METHOD_GET, $contentType);
+        try {
+            $result = $this->send($url, self::METHOD_GET, $contentType);
+        } catch (Exception\AdapterException $e) {
+
+            if ($e->getType() === Exception\AdapterException::TYPE_SELECTONE_RECORDNOTFOUND) {
+                return false;
+            } else {
+                throw $e;
+            }
+        }
 
         // Replace id with code if enabled
         if ($contentType === self::CONTENT_JSON

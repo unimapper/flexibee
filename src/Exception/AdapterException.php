@@ -6,6 +6,7 @@ class AdapterException extends \UniMapper\Exception\AdapterException
 {
 
     const TYPE_UPDATE_FORBIDDEN = "Atribut update='fail' zakazuje změnu existujícího záznamu.";
+    const TYPE_SELECTONE_RECORDNOTFOUND = "Record not found in data source.";
 
     private $type;
 
@@ -18,6 +19,10 @@ class AdapterException extends \UniMapper\Exception\AdapterException
                 $this->type = self::TYPE_UPDATE_FORBIDDEN;
             }
         } elseif (isset($response->message)) {
+
+            if ($response->message === self::TYPE_SELECTONE_RECORDNOTFOUND) {
+                $this->type = self::TYPE_SELECTONE_RECORDNOTFOUND;
+            }
             $message = $response->message;
         }
 
