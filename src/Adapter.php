@@ -168,6 +168,11 @@ class Adapter extends \UniMapper\Adapter
                 return $result;
             }
 
+            $result = $result->{$query->evidence};
+            if (count($result) === 0) {
+                return false;
+            }
+
             // Merge associations results for mapping compatibility
             foreach ($result as $index => $item) {
 
