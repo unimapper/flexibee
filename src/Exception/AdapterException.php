@@ -12,12 +12,18 @@ class AdapterException extends \UniMapper\Exception\AdapterException
 
     public function __construct($message, $query, $response = null)
     {
-        if (isset($response->results[0]->errors[0])) {
-            $message = json_encode($response->results[0]->errors, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (isset($response->results)) {
 
-            if (substr($response->results[0]->errors[0]->message, 0, strlen(self::TYPE_UPDATE_FORBIDDEN)) === self::TYPE_UPDATE_FORBIDDEN) {
-                $this->type = self::TYPE_UPDATE_FORBIDDEN;
+            $message = [];
+            foreach ($response->results as $result) {
+                if (isset($result->errors[0])) {
+                    if (substr($result->errors[0]->message, 0, strlen(self::TYPE_UPDATE_FORBIDDEN)) === self::TYPE_UPDATE_FORBIDDEN) {
+                        $this->type = self::TYPE_UPDATE_FORBIDDEN;
+                    }
+                    $message[] = $result;
+                }
             }
+            $message = json_encode($message, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } elseif (isset($response->message)) {
 
             if ($response->message === self::TYPE_SELECTONE_RECORDNOTFOUND) {
