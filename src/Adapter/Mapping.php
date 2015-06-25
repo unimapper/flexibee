@@ -8,7 +8,11 @@ use UniMapper\Reflection;
 class Mapping extends \UniMapper\Adapter\Mapping
 {
 
-    const DATETIME_FORMAT = "Y-m-d\TH:i:sP";
+    /** @var array */
+    public static $format = [
+        Reflection\Property::TYPE_DATE => "Y-m-d",
+        Reflection\Property::TYPE_DATETIME => "Y-m-d\TH:i:sP"
+    ];
 
     public function mapValue(Reflection\Property $property, $value)
     {
@@ -26,9 +30,11 @@ class Mapping extends \UniMapper\Adapter\Mapping
     {
         if ($value === null) {
             return "";
-        } elseif ($value instanceof \DateTime) {
+        } elseif ($value instanceof \DateTime
+            && isset(self::$format[$property->getType()])
+        ) {
 
-            $value = $value->format(self::DATETIME_FORMAT);
+            $value = $value->format(self::$format[$property->getType()]);
             if ($value === false) {
                 throw new \Exception("Can not convert DateTime automatically!");
             }
