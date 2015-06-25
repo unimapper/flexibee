@@ -107,12 +107,12 @@ class Adapter extends \UniMapper\Adapter
 
         // Parse response
         switch ($contentType) {
-        case self::CONTENT_JSON:
-            $response = json_decode($response);
-            break;
-        case self::CONTENT_XML:
-            $response = simplexml_load_string($response);
-            break;
+            case self::CONTENT_JSON:
+                $response = json_decode($response);
+                break;
+            case self::CONTENT_XML:
+                $response = simplexml_load_string($response);
+                break;
         }
 
         // Get response body root automatically
@@ -185,10 +185,12 @@ class Adapter extends \UniMapper\Adapter
 
                         if ($association->getJoinKey() === "vazby") {
 
+                            $joinResources = explode(',', $association->getJoinResource());
                             foreach ($item->vazby as $relation) {
-
-                                if ($relation->typVazbyK === $association->getJoinResource()) { // eg. typVazbyDokl.obchod_zaloha_hla
-                                    $result[$index]->{$association->getPropertyName()}[] = $relation->{$association->getReferencingKey()}[0];// 'a' or 'b'
+                                foreach ($joinResources as $joinResource) {
+                                    if ($relation->typVazbyK === $joinResource) { // eg. typVazbyDokl.obchod_zaloha_hla
+                                        $result[$index]->{$association->getPropertyName()}[] = $relation->{$association->getReferencingKey()}[0];// 'a' or 'b'
+                                    }
                                 }
                             }
                         } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
@@ -265,10 +267,12 @@ class Adapter extends \UniMapper\Adapter
 
                         if ($association->getJoinKey() === "vazby") {
 
+                            $joinResources = explode(',', $association->getJoinResource());
                             foreach ($item->vazby as $relation) {
-
-                                if ($relation->typVazbyK === $association->getJoinResource()) { // eg. typVazbyDokl.obchod_zaloha_hla
-                                    $result[$index]->{$propertyName}[] = $relation->{$association->getReferencingKey()}[0];// 'a' or 'b'
+                                foreach ($joinResources as $joinResource) {
+                                    if ($relation->typVazbyK === $joinResource) { // eg. typVazbyDokl.obchod_zaloha_hla
+                                        $result[$index]->{$propertyName}[] = $relation->{$association->getReferencingKey()}[0];// 'a' or 'b'
+                                    }
                                 }
                             }
                         } elseif ($association->getJoinKey() === "uzivatelske-vazby") {
@@ -514,7 +518,7 @@ class Adapter extends \UniMapper\Adapter
                         $result->{$name}[$index] = $this->_replaceExternalIds($item);
                     }
                 } else {
-                     $result->{$name} = $this->_replaceExternalIds($value);
+                    $result->{$name} = $this->_replaceExternalIds($value);
                 }
             }
         }
