@@ -352,7 +352,7 @@ class Adapter extends \UniMapper\Adapter
         return $query;
     }
 
-    public function createInsert($evidence, array $values)
+    public function createInsert($evidence, array $values, $primaryName = null)
     {
         // Support for multi-insert
         if ($values === array_values($values)) {
@@ -368,7 +368,11 @@ class Adapter extends \UniMapper\Adapter
             Query::PUT,
             [$evidence => $values]
         );
-        $query->resultCallback = function ($result) {
+        $query->resultCallback = function ($result) use ($values, $primaryName) {
+
+            if ($primaryName && isset($values[$primaryName])) {
+                return $values[$primaryName];
+            }
 
             foreach ($result->results as $item) {
 
