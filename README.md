@@ -277,10 +277,14 @@ public function getOrder($orderId)
 - Hledání textu v poznámce určitých objednávek:
 
 ```
+use UniMapper\Entity\Filter;
+
 $invoices = $this->query()
-    ->select()
-    ->where("note", "LIKE", "%" . $tentoTextHledame . "%")
-    ->where("documentType", "IN", ["code:PRIMA", "code:NEPRIMA"])
+    ->where(
+        [
+            "note" => [Filter::CONTAIN => $tentoTextHledame]
+            "documentType" => [Filter::EQUAL => ["code:PRIMA", "code:NEPRIMA"]]
+        ]
     ->orderBy("id", "desc")
     ->limit(10)
     ->run($this->connection);

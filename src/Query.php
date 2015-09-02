@@ -3,6 +3,7 @@
 namespace UniMapper\Flexibee;
 
 use UniMapper\Association;
+use UniMapper\Entity\Filter;
 
 class Query implements \UniMapper\Adapter\IQuery
 {
@@ -29,9 +30,9 @@ class Query implements \UniMapper\Adapter\IQuery
         $this->data = $data;
     }
 
-    public function setConditions(array $conditions)
+    public function setFilter(array $filter)
     {
-        $this->filter = $this->_formatConditions($conditions);
+        $this->filter = $this->_formatFilter($filter);
     }
 
     public function setAssociations(array $associations)
@@ -111,121 +112,142 @@ class Query implements \UniMapper\Adapter\IQuery
         return $url;
     }
 
-    private function _formatConditions(array $conditions)
+    private function _formatFilter(array $filter, $or = false)
     {
         $result = "";
 
-        foreach ($conditions as $condition) {
+        if (Filter::isGroup($filter)) {
+            // Filter group
 
-            if (is_array($condition[0])) {
-                // Nested conditions
+            foreach ($filter as $modifier => $item) {
 
-                list($nestedConditions, $joiner) = $condition;
-
-                $formated = "(" . $this->_formatConditions($nestedConditions) . ")";
-            } else {
-                // Simple condition
-
-                list($name, $operator, $value, $joiner) = $condition;
-
-                if ($name === "stitky") {
-                    $value = explode(",", $value);
+                $formatted = "(" .$this->_formatFilter($item, $modifier === Filter::_OR ? true : false) . ")";
+                if (empty($result)) {
+                    $result = $formatted;
+                } else {
+                    $result .= " " . ($or ? "OR" : "AND") . " " . $formatted;
                 }
+            }
+            return "(" . $result . ")";
+        } else {
+            // Filter item
 
-                if ($operator === "LIKE") {
-                    // LIKE
+            foreach ($filter as $name => $item) {
 
-                    $leftPercent = $rightPercent = false;
-
-                    if (substr($value, 0, 1) === "%") {
-                        $value = substr($value, 1);
-                        $leftPercent = true;
-                    }
-
-                    if (substr($value, -1) === "%") {
-                        $value = substr($value, 0, -1);
-                        $rightPercent = true;
-                    }
-
-                    if ($rightPercent && !$leftPercent) {
-                        $operator = "BEGINS";
-                    } elseif ($leftPercent && !$rightPercent) {
-                        $operator = "ENDS";
-                    } else {
-                        $operator = "LIKE";
-                    }
-
-                    if (Adapter::$likeWithSimilar) {
-                        $operator .= " SIMILAR";
-                    }
-
-                    $value = "'" . $value . "'";
-                } elseif ($operator === "NOT IN") {
-                    // NOT IN
-
-                    foreach ($value as $index => $item) {
-                        $value[$index] = $name . " != '" .  $item . "'";
-                    }
-
-                    $value = "(" . implode(" AND ", $value) . ")";
-                    unset($operator);
-                    unset($name);
-                } elseif ($operator === "IN") {
-                    // IN
+                foreach ($item as $modifier => $value) {
 
                     if ($name === "stitky") {
+                        $value = explode(",", $value);
+                    }
+
+                    if ($modifier === Filter::START) {
+
+                        $modifier = "BEGINS";
+                        if (Adapter::$likeWithSimilar) {
+                            $modifier .= " SIMILAR";
+                        }
+                        $value = "'" . $value . "'";
+                    } elseif ($modifier === Filter::END) {
+
+                        $modifier = "ENDS";
+                        if (Adapter::$likeWithSimilar) {
+                            $modifier .= " SIMILAR";
+                        }
+                        $value = "'" . $value . "'";
+                    } elseif ($modifier === Filter::CONTAIN) {
+
+                        $modifier = "LIKE";
+                        if (Adapter::$likeWithSimilar) {
+                            $modifier .= " SIMILAR";
+                        }
+                        $value = "'" . $value . "'";
+                    } elseif ($modifier === Filter::NOT && is_array($value)) {
+                        // NOT IN
 
                         foreach ($value as $index => $item) {
-                            $value[$index] = $name . " = '" .  $item . "'";
+                            $value[$index] = $name . " != '" .  $item . "'";
                         }
-                        $value = "(" . implode(" OR ", $value) . ")";
-                        unset($operator);
+
+                        $value = "(" . implode(" AND ", $value) . ")";
+                        unset($modifier);
                         unset($name);
+                    } elseif ($modifier === Filter::EQUAL && is_array($value)) {
+                        // IN
+
+                        if ($name === "stitky") {
+
+                            foreach ($value as $index => $item) {
+                                $value[$index] = $name . " = '" .  $item . "'";
+                            }
+                            $value = "(" . implode(" OR ", $value) . ")";
+                            unset($modifier);
+                            unset($name);
+                        } else {
+
+                            $modifier = "IN";
+                            $value = "('" . implode("','", $value) . "')";
+                        }
+                    } elseif (in_array($modifier, [Filter::EQUAL, Filter::NOT], true)) {
+                        // IS, IS NOT, =, !=
+
+                        if (is_bool($value)) {
+
+                            if ($modifier === Filter::NOT) {
+                                $value = !$value; // Flexibee does not support IS NOT with bool values
+                            }
+                            $modifier = "IS";
+                        } elseif ($value === null || $value === "") {
+
+                            if ($modifier === Filter::NOT) {
+                                $modifier = "IS NOT";
+                            } else {
+                                $modifier = "IS";
+                            }
+                            $value = "NULL";
+                        } elseif ($value === "''" || $value === '""') {
+
+                            if ($modifier === Filter::NOT) {
+                                $modifier = "IS NOT";
+                            } else {
+                                $modifier = "IS";
+                            }
+                            $value = "empty";
+                        } else {
+
+                            if ($modifier === Filter::EQUAL) {
+                                $modifier = "=";
+                            } else {
+                                $modifier = "!=";
+                            }
+                            $value = "'" . $value . "'";
+                        }
                     } else {
-                        $value = "('" . implode("','", $value) . "')";
+                        // Other modifiers
+
+                        $value = "'" . $value . "'";
                     }
-                } elseif ($operator === "IS" || $operator === "IS NOT") {
-                    // IS, IS NOT
 
-                    if (is_bool($value) && $operator === "IS NOT") {
-                        // Flexibee does not support IS NOT with bool values
-
-                        $operator = "IS";
-                        $value = !$value;
-                    } elseif ($value === null || $value === "") {
-                        $value = "NULL";
-                    } elseif ($value === "''" || $value === '""') {
-                        $value = "empty";
+                    if (is_bool($value)) {
+                        $value = var_export($value, true);
                     }
-                } else {
-                    // Other operators
-                    $value = "'" . $value . "'";
-                }
 
-                if (is_bool($value)) {
-                    $value = var_export($value, true);
-                }
+                    if (!empty($result)) {
+                        $result .= " " . ($or ? "OR" : "AND") . " ";
+                    }
 
-                $formated = "";
-                if (isset($name)) {
-                    $formated .= $name . " ";
-                }
-                if (isset($operator)) {
-                    $formated .= $operator . " ";
-                }
+                    if (isset($name)) {
+                        $result .= $name . " ";
+                    }
+                    if (isset($modifier)) {
+                        $result .= $modifier . " ";
+                    }
 
-                $formated .= $value;
+                    $result .= $value;
+                }
             }
 
-            // Add joiner if not first condition
-            if ($result !== "") {
-                $result .= " " . $joiner . " ";
-            }
-
-            $result .= $formated;
+            return $result;
         }
-
-        return $result;
     }
 
 }

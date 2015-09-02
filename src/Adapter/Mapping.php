@@ -3,7 +3,7 @@
 namespace UniMapper\Flexibee\Adapter;
 
 use UniMapper\Association;
-use UniMapper\Reflection;
+use UniMapper\Entity\Reflection;
 
 class Mapping extends \UniMapper\Adapter\Mapping
 {

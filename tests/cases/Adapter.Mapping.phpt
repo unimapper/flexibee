@@ -30,14 +30,14 @@ class AdapterMappingTest extends Tester\TestCase
         Assert::same(
             "1999-12-30",
             $this->mapping->unmapValue(
-                UniMapper\Reflection\Loader::load("Entity")->getProperty("date"),
+                UniMapper\Entity\Reflection::load("Entity")->getProperty("date"),
                 new DateTime("1999-12-30 23:59:59.00")
             )
         );
         Assert::same(
             "1999-12-30T23:59:59+01:00",
             $this->mapping->unmapValue(
-                UniMapper\Reflection\Loader::load("Entity")->getProperty("time"),
+                UniMapper\Entity\Reflection::load("Entity")->getProperty("time"),
                 new DateTime("1999-12-30 23:59:59.00")
             )
         );
