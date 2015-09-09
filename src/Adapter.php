@@ -213,7 +213,7 @@ class Adapter extends \UniMapper\Adapter
                     } elseif ($association instanceof Association\OneToMany) {
                         // 1:N
 
-                        $result[$index]->{$propertyName} = $item->{$association->getReferencedKey()};
+                        $result[$index]->{$association->getPropertyName()} = $item->{$association->getReferencedKey()};
                     }
                 }
             }
