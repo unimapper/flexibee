@@ -119,7 +119,7 @@ class Order extends \UniMapper\Flexibee\Entity
 
 #### Tipy
 - Díky *m:enum* lze hlídat hodnoty ve výčtových typech. Unimapper vyhodí výjimku, pokud se hodnota nenachází v datech, která se vrací z Flexibee / posílají do Flexibee.
-- Štítky (zde tags) si lze jednoduše převést do array pomocí *m:map-filter(mapStitky|unmapStitky)* a pak s nimi jednodušeji pracovat. Naopak při zápisu se z array vhodně přetransformují do podobi, kterou Flexibee akceptuje.
+- Štítky (zde tags) si lze jednoduše převést do array pomocí *m:map-filter(mapStitky|unmapStitky)* a pak s nimi jednodušeji pracovat. Naopak při zápisu se z array vhodně přetransformují do podoby, kterou Flexibee akceptuje.
 - Pokud chcete načítat i externí identifikátory, lze ala příklad použít *$externalIds*.
 - Pomocí *m:assoc(M:N)* dokážete skoro kouzla. Například v *$advanceInvoices* budete mít rovnou kolekci navázaných zálohovek k této objednávce a v *$cashInvoices* kolekci navázaných faktur. Pokud byste to rovnou chtěli pohromadě v jedné kolekci (proformy i faktury), můžete využít další vychytávku Unimapperu a to je "computed" property.
 - Pomocí *m:computed* můžete zařídit, že jakmile k takové property přistoupíte, bude obsahovat přesně ten obsah, který potřebujete. V příkladu s tím souvisí metoda *computeInvoices()*.
