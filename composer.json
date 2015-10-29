@@ -15,7 +15,7 @@
         "ext-curl": "*"
     },
     "require-dev": {
-        "bauer01/unimapper": "@dev",
+        "bauer01/unimapper": "~1.2.0",
         "nette/tester": "~1.0",
         "mockery/mockery": "~0.9.0",
         "squizlabs/php_codesniffer": "~2.0"
