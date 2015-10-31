@@ -1,5 +1,5 @@
 {
-    "name": "bauer01/unimapper-flexibee",
+    "name": "unimapper/flexibee",
     "type": "library",
     "description": "Flexibee implementation for UniMapper",
     "keywords": ["php", "mapping", "data", "orm", "flexibee"],
@@ -15,10 +15,13 @@
         "ext-curl": "*"
     },
     "require-dev": {
-        "bauer01/unimapper": "@dev",
+        "unimapper/unimapper": "@dev",
         "nette/tester": "~1.0",
         "mockery/mockery": "~0.9.0",
         "squizlabs/php_codesniffer": "~2.0"
+    },
+    "replace": {
+        "bauer01/unimapper-flexibee": "self.version"
     },
     "autoload": {
          "psr-4": {"UniMapper\\Flexibee\\": "src/"}
