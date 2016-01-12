@@ -165,7 +165,7 @@ class Query implements \UniMapper\Adapter\IQuery
                         // NOT IN
 
                         foreach ($value as $index => $item) {
-                            $value[$index] = $name . " != '" .  $item . "'";
+                            $value[$index] = $name . " != " .  (is_string($item) ? "'" .  $item . "'" : $item);
                         }
 
                         $value = "(" . implode(" AND ", $value) . ")";
@@ -185,7 +185,11 @@ class Query implements \UniMapper\Adapter\IQuery
                         } else {
 
                             $modifier = "IN";
-                            $value = "('" . implode("','", $value) . "')";
+                            if (array_filter($value, 'is_string')) {
+                                $value = "('" . implode("','", $value) . ")";
+                            } else {
+                                $value = "(" . implode(",", $value) . ")";
+                            }
                         }
                     } elseif (in_array($modifier, [Filter::EQUAL, Filter::NOT], true)) {
                         // IS, IS NOT, =, !=
@@ -219,12 +223,12 @@ class Query implements \UniMapper\Adapter\IQuery
                             } else {
                                 $modifier = "!=";
                             }
-                            $value = "'" . $value . "'";
+                            $value = is_string($value) ? "'" . $value . "'" : $value;
                         }
                     } else {
                         // Other modifiers
 
-                        $value = "'" . $value . "'";
+                        $value = is_string($value) ? "'" . $value . "'" : $value;
                     }
 
                     if (is_bool($value)) {
