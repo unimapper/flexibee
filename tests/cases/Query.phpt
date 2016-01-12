@@ -22,7 +22,7 @@ class QueryTest extends Tester\TestCase
     {
         $this->query->setFilter(["in" => [Filter::EQUAL => [1, 2]]]);
         Assert::same(
-            "objednavka-prijata/(in IN ('1','2')).json?code-as-id=true",
+            "objednavka-prijata/(in IN (1,2)).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
@@ -30,6 +30,15 @@ class QueryTest extends Tester\TestCase
     public function testSetFilterEqual()
     {
         $this->query->setFilter(["equal" => [Filter::EQUAL=> 1]]);
+        Assert::same(
+            "objednavka-prijata/(equal = 1).json?code-as-id=true",
+            rawurldecode($this->query->getRaw())
+        );
+    }
+
+    public function testSetFilterEqualString()
+    {
+        $this->query->setFilter(["equal" => [Filter::EQUAL=> "1"]]);
         Assert::same(
             "objednavka-prijata/(equal = '1').json?code-as-id=true",
             rawurldecode($this->query->getRaw())
@@ -40,7 +49,7 @@ class QueryTest extends Tester\TestCase
     {
         $this->query->setFilter(["notEqual" => [Filter::NOT => 1]]);
         Assert::same(
-            "objednavka-prijata/(notEqual != '1').json?code-as-id=true",
+            "objednavka-prijata/(notEqual != 1).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
@@ -48,6 +57,15 @@ class QueryTest extends Tester\TestCase
     public function testSetFilterGreater()
     {
         $this->query->setFilter(["greater" => [Filter::GREATER => 1]]);
+        Assert::same(
+            "objednavka-prijata/(greater > 1).json?code-as-id=true",
+            rawurldecode($this->query->getRaw())
+        );
+    }
+
+    public function testSetFilterGreaterString()
+    {
+        $this->query->setFilter(["greater" => [Filter::GREATER => "1"]]);
         Assert::same(
             "objednavka-prijata/(greater > '1').json?code-as-id=true",
             rawurldecode($this->query->getRaw())
@@ -58,7 +76,7 @@ class QueryTest extends Tester\TestCase
     {
         $this->query->setFilter(["less" => [Filter::LESS => 1]]);
         Assert::same(
-            "objednavka-prijata/(less < '1').json?code-as-id=true",
+            "objednavka-prijata/(less < 1).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
@@ -67,7 +85,7 @@ class QueryTest extends Tester\TestCase
     {
         $this->query->setFilter(["lessEqual" => [Filter::LESSEQUAL => 1]]);
         Assert::same(
-            "objednavka-prijata/(lessEqual <= '1').json?code-as-id=true",
+            "objednavka-prijata/(lessEqual <= 1).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
@@ -76,7 +94,7 @@ class QueryTest extends Tester\TestCase
     {
         $this->query->setFilter(["greaterEqual" => [Filter::GREATEREQUAL => 1]]);
         Assert::same(
-            "objednavka-prijata/(greaterEqual >= '1').json?code-as-id=true",
+            "objednavka-prijata/(greaterEqual >= 1).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
@@ -184,6 +202,15 @@ class QueryTest extends Tester\TestCase
     {
         $this->query->setFilter(["notIn" => [Filter::NOT => [1, 2]]]);
         Assert::same(
+            "objednavka-prijata/((notIn != 1 AND notIn != 2)).json?code-as-id=true",
+            rawurldecode($this->query->getRaw())
+        );
+    }
+
+    public function testSetFilterNotInStrings()
+    {
+        $this->query->setFilter(["notIn" => [Filter::NOT => ["1", "2"]]]);
+        Assert::same(
             "objednavka-prijata/((notIn != '1' AND notIn != '2')).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
@@ -249,7 +276,7 @@ class QueryTest extends Tester\TestCase
             ]
         );
         Assert::same(
-            "objednavka-prijata/(id > '1' AND id < '2').json?code-as-id=true",
+            "objednavka-prijata/(id > 1 AND id < 2).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
@@ -269,7 +296,7 @@ class QueryTest extends Tester\TestCase
             ]
         );
         Assert::same(
-            "objednavka-prijata/(((one = '1' AND two = '2') AND (three = '3' AND four = '4'))).json?code-as-id=true",
+            "objednavka-prijata/(((one = 1 AND two = 2) AND (three = 3 AND four = 4))).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
@@ -291,7 +318,7 @@ class QueryTest extends Tester\TestCase
             ]
         );
         Assert::same(
-            "objednavka-prijata/(((one = '1' AND two = '2') AND (((three = '3' OR four = '4'))))).json?code-as-id=true",
+            "objednavka-prijata/(((one = 1 AND two = 2) AND (((three = 3 OR four = 4))))).json?code-as-id=true",
             rawurldecode($this->query->getRaw())
         );
     }
