@@ -186,7 +186,7 @@ class Query implements \UniMapper\Adapter\IQuery
 
                             $modifier = "IN";
                             if (array_filter($value, 'is_string')) {
-                                $value = "('" . implode("','", $value) . ")";
+                                $value = "('" . implode("','", $value) . "')";
                             } else {
                                 $value = "(" . implode(",", $value) . ")";
                             }

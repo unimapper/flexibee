@@ -27,6 +27,15 @@ class QueryTest extends Tester\TestCase
         );
     }
 
+    public function testSetFilterInString()
+    {
+        $this->query->setFilter(["in" => [Filter::EQUAL => ["1", "2"]]]);
+        Assert::same(
+            "objednavka-prijata/(in IN ('1','2')).json?code-as-id=true",
+            rawurldecode($this->query->getRaw())
+        );
+    }
+
     public function testSetFilterEqual()
     {
         $this->query->setFilter(["equal" => [Filter::EQUAL=> 1]]);
